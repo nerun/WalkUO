@@ -291,6 +291,7 @@ namespace Server.Items
                 throw new ArgumentNullException();
 
             Item[] typedItems = FindItemsByType( type, recurse );
+            Array.Sort( typedItems, new GroupComparer( grouper ) );
 
             List<List<Item>> groups = new List<List<Item>>();
             int idx = 0;
@@ -388,6 +389,7 @@ namespace Server.Items
             for ( int i = 0; i < types.Length; ++i )
             {
                 Item[] typedItems = FindItemsByType( types[i], recurse );
+                Array.Sort( typedItems, new GroupComparer( grouper ) );
 
                 List<List<Item>> groups = new List<List<Item>>();
                 int idx = 0;
@@ -489,6 +491,7 @@ namespace Server.Items
             for ( int i = 0; i < types.Length; ++i )
             {
                 Item[] typedItems = FindItemsByType( types[i], recurse );
+                Array.Sort( typedItems, new GroupComparer( grouper ) );
 
                 List<List<Item>> groups = new List<List<Item>>();
                 int idx = 0;
@@ -819,6 +822,7 @@ namespace Server.Items
             int best = 0;
 
             Item[] typedItems = FindItemsByType( type, recurse );
+            Array.Sort( typedItems, new GroupComparer( grouper ) );
 
             List<List<Item>> groups = new List<List<Item>>();
             int idx = 0;
@@ -871,6 +875,7 @@ namespace Server.Items
             int best = 0;
 
             Item[] typedItems = FindItemsByType( types, recurse );
+            Array.Sort( typedItems, new GroupComparer( grouper ) );
 
             List<List<Item>> groups = new List<List<Item>>();
             int idx = 0;
@@ -924,6 +929,7 @@ namespace Server.Items
             for( int i = 0; i < types.Length; ++i )
             {
                 Item[] typedItems = FindItemsByType( types[i], recurse );
+                Array.Sort( typedItems, new GroupComparer( grouper ) );
 
                 List<List<Item>> groups = new List<List<Item>>();
                 int idx = 0;
