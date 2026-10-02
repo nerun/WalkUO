@@ -348,8 +348,10 @@ namespace Server
                         break;
                     case Buttons.Accept:
                     {
-                        var platText = info.GetTextEntry(0).Text;
-                        var goldText = info.GetTextEntry(1).Text;
+                        var platEntry = info.GetTextEntry(0);
+                        var goldEntry = info.GetTextEntry(1);
+                        var platText = platEntry == null ? null : platEntry.Text;
+                        var goldText = goldEntry == null ? null : goldEntry.Text;
 
                         if (!Int32.TryParse(platText, out _Plat))
                         {
