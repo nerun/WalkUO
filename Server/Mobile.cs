@@ -6968,10 +6968,11 @@ namespace Server
 
             if( newRegion != m_Region )
             {
-                Region.OnRegionChange( this, m_Region, newRegion );
+                Region oldRegion = m_Region;
+                Region.OnRegionChange( this, oldRegion, newRegion );
 
                 m_Region = newRegion;
-                OnRegionChange( m_Region, newRegion );
+                OnRegionChange( oldRegion, newRegion );
             }
         }
 
