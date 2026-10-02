@@ -121,11 +121,11 @@ namespace Server {
             }
 
             public override void Write( byte[] array, int offset, int count ) {
-                base.Write( array, offset, bufferSize );
+                base.Write( array, offset, count );
             }
 
             public override IAsyncResult BeginWrite( byte[] array, int offset, int numBytes, AsyncCallback userCallback, object stateObject ) {
-                return base.BeginWrite( array, offset, bufferSize, userCallback, stateObject );
+                return base.BeginWrite( array, offset, numBytes, userCallback, stateObject );
             }
 
             protected override void Dispose( bool disposing ) {
