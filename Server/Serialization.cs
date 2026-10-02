@@ -311,6 +311,10 @@ namespace Server
                 while( charsLeft > 0 )
                 {
                     int charCount = (charsLeft > m_MaxBufferChars) ? m_MaxBufferChars : charsLeft;
+
+                    if( charCount < charsLeft && Char.IsHighSurrogate( value[current + charCount - 1] ) && Char.IsLowSurrogate( value[current + charCount] ) )
+                        --charCount;
+
                     int byteLength = m_Encoding.GetBytes( value, current, charCount, m_CharacterBuffer, 0 );
 
                     if( (m_Index + byteLength) > m_Buffer.Length )
