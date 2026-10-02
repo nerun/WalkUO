@@ -93,6 +93,8 @@ namespace Server.Network
             }
             catch ( Exception e )
             {
+                s.Close();
+
                 if ( e is SocketException ) {
                     SocketException se = (SocketException)e;
 
