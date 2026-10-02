@@ -58,7 +58,7 @@ namespace Server
                         BodyType type;
                         int bodyID;
 
-                        if( int.TryParse( split[0], out bodyID ) && Enum.TryParse( split[1], true, out type ) && bodyID >= 0 && bodyID < m_Types.Length )
+                        if( split.Length >= 2 && int.TryParse( split[0], out bodyID ) && Enum.TryParse( split[1], true, out type ) && bodyID >= 0 && bodyID < m_Types.Length )
                         {
                             m_Types[bodyID] = type;
                         }
