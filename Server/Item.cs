@@ -3020,6 +3020,7 @@ namespace Server
         }
 
         private static List<Item> m_DeltaQueue = new List<Item>();
+        private static List<Item> m_DeltaQueueR = new List<Item>();
 
         public void Delta( ItemDelta flags )
         {
@@ -3033,6 +3034,10 @@ namespace Server
                 SetFlag( ImplFlag.InQueue, true );
 
                 if (_processing) {
+                    lock (m_DeltaQueueR) {
+                        m_DeltaQueueR.Add(this);
+                    }
+
                     try {
                         using (StreamWriter op = new StreamWriter("delta-recursion.log", true)) {
                             op.WriteLine("# {0}", DateTime.UtcNow);
@@ -3057,6 +3062,10 @@ namespace Server
                 SetFlag( ImplFlag.InQueue, false );
 
                 if (_processing) {
+                    lock (m_DeltaQueueR) {
+                        m_DeltaQueueR.Remove(this);
+                    }
+
                     try {
                         using (StreamWriter op = new StreamWriter("delta-recursion.log", true)) {
                             op.WriteLine("# {0}", DateTime.UtcNow);
@@ -3316,6 +3325,11 @@ namespace Server
             m_DeltaQueue.Clear();
 
             _processing = false;
+
+            lock (m_DeltaQueueR) {
+                m_DeltaQueue.AddRange(m_DeltaQueueR);
+                m_DeltaQueueR.Clear();
+            }
         }
 
         public virtual void OnDelete()
