@@ -757,8 +757,8 @@ namespace Server.Network {
                 do {
                     result = !m_Socket.SendAsync( m_SendEventArgs );
 
-                    if ( result )
-                        Send_Process( m_SendEventArgs );
+                    if ( result && !Send_Process( m_SendEventArgs ) )
+                        return;
                 } while ( result ); 
             } catch ( Exception ex ) {
                 TraceException( ex );
@@ -768,44 +768,48 @@ namespace Server.Network {
 
         private void Send_Completion( object sender, SocketAsyncEventArgs e )
         {
-            Send_Process( e );
-
-            if ( m_Disposing )
+            if ( !Send_Process( e ) )
                 return;
 
             if ( m_CoalesceSleep >= 0 ) {
                 Thread.Sleep( m_CoalesceSleep );
             }
 
+            Send_Start();
+        }
+
+        private bool Send_Process( SocketAsyncEventArgs e )
+        {
+            int bytes = e.BytesTransferred;
+
+            if ( e.SocketError != SocketError.Success || bytes <= 0 ) {
+                Dispose( false );
+                return false;
+            }
+
+            if ( m_Disposing )
+                return false;
+
+            m_NextCheckActivity = Core.TickCount + 90000;
+
             lock (_sendL) {
                 SendQueue.Gram gram;
 
                 lock ( m_SendQueue ) {
-                    gram = m_SendQueue.Dequeue();
+                    gram = m_SendQueue.Dequeue( bytes );
 
                     if (gram == null && m_SendQueue.IsFlushReady)
                         gram = m_SendQueue.CheckFlushReady();
                 }
 
                 if ( gram != null ) {
-                    m_SendEventArgs.SetBuffer( gram.Buffer, 0, gram.Length );
-                    Send_Start();
+                    e.SetBuffer( gram.Buffer, gram.Offset, gram.Length - gram.Offset );
+                    return true;
                 } else {
                     _sending = false;
+                    return false;
                 }
             }
-        }
-
-        private void Send_Process( SocketAsyncEventArgs e )
-        {
-            int bytes = e.BytesTransferred;
-
-            if ( e.SocketError != SocketError.Success || bytes <= 0 ) {
-                Dispose( false );
-                return;
-            }
-
-            m_NextCheckActivity = Core.TickCount + 90000;
         }
 
         public static void Pause() {
@@ -956,7 +960,7 @@ namespace Server.Network {
                     SendQueue.Gram gram;
 
                     lock (m_SendQueue) {
-                        gram = m_SendQueue.Dequeue();
+                        gram = m_SendQueue.Dequeue( bytes );
 
                         if (gram == null && m_SendQueue.IsFlushReady)
                             gram = m_SendQueue.CheckFlushReady();
@@ -964,7 +968,7 @@ namespace Server.Network {
 
                     if (gram != null) {
                         try {
-                            s.BeginSend(gram.Buffer, 0, gram.Length, SocketFlags.None, m_OnSend, s);
+                            s.BeginSend(gram.Buffer, gram.Offset, gram.Length - gram.Offset, SocketFlags.None, m_OnSend, s);
                         } catch (Exception ex) {
                             TraceException(ex);
                             Dispose(false);

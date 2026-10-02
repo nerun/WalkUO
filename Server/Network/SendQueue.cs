@@ -39,6 +39,7 @@ namespace Server.Network {
 
                     gram._buffer = AcquireBuffer();
                     gram._length = 0;
+                    gram._offset = 0;
 
                     return gram;
                 }
@@ -46,6 +47,19 @@ namespace Server.Network {
 
             private byte[] _buffer;
             private int _length;
+            private int _offset;
+
+            internal int Offset {
+                get { return _offset; }
+            }
+
+            internal bool Consume( int bytes ) {
+                if ( bytes <= 0 || bytes > _length - _offset )
+                    throw new ArgumentOutOfRangeException( "bytes" );
+
+                _offset += bytes;
+                return _offset == _length;
+            }
 
             public byte[] Buffer {
                 get {
@@ -165,6 +179,14 @@ namespace Server.Network {
             }
 
             return gram;
+        }
+
+        internal Gram Dequeue( int bytes ) {
+            if ( _pending.Count == 0 )
+                return null;
+
+            Gram gram = _pending.Peek();
+            return gram.Consume( bytes ) ? Dequeue() : gram;
         }
 
         private const int PendingCap = 256 * 1024;
