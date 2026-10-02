@@ -438,7 +438,7 @@ namespace Server
 
                     fixed ( StaticTile *pTiles = staTiles )
                     {
-                        NativeReader.Read( m_Statics.SafeFileHandle.DangerousGetHandle(), pTiles, length );
+                        NativeReader.Read( m_Statics.SafeFileHandle.DangerousGetHandle(), pTiles, count * 7 );
 
                         if ( m_Lists == null )
                         {

@@ -168,7 +168,7 @@ namespace Server
 
                             fixed ( StaticTile *pTiles = staTiles )
                             {
-                                NativeReader.Read( fsData.SafeFileHandle.DangerousGetHandle(), pTiles, length );
+                                NativeReader.Read( fsData.SafeFileHandle.DangerousGetHandle(), pTiles, tileCount * 7 );
 
                                 StaticTile *pCur = pTiles, pEnd = pTiles + tileCount;
 
