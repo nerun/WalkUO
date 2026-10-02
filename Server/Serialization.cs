@@ -1485,7 +1485,7 @@ namespace Server
 
             public void Worker()
             {
-                AsyncWriter.m_ThreadCount++;
+                Interlocked.Increment( ref AsyncWriter.m_ThreadCount );
 
                 int lastCount = 0;
 
@@ -1504,9 +1504,7 @@ namespace Server
                 if( m_Owner.m_Closed )
                     m_Owner.m_File.Close();
 
-                AsyncWriter.m_ThreadCount--;
-
-                if (AsyncWriter.m_ThreadCount <= 0)
+                if ( Interlocked.Decrement( ref AsyncWriter.m_ThreadCount ) <= 0 )
                     World.NotifyDiskWriteComplete();
             }
         }
