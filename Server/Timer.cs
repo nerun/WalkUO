@@ -48,11 +48,13 @@ namespace Server
         private long m_Next;
         private long m_Delay;
         private long m_Interval;
-        private bool m_Running;
+        private volatile bool m_Running;
         private int m_Index, m_Count;
         private TimerPriority m_Priority;
         private List<Timer> m_List;
         private bool m_PrioritySet;
+
+        private volatile bool m_Queued;
 
         private static string FormatDelegate( Delegate callback )
         {
@@ -369,8 +371,6 @@ namespace Server
         public static int BreakCount{ get{ return m_BreakCount; } set{ m_BreakCount = value; } }
 
         private static int m_QueueCountAtSlice;
-
-        private bool m_Queued;
 
         public static void Slice()
         {

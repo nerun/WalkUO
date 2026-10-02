@@ -57,7 +57,7 @@ namespace Server {
         private Consumer[] consumers;
         private int cycle;
 
-        private bool finished;
+        private volatile bool finished;
 
         public override void Save(SaveMetrics metrics, bool permitBackgroundWrite)
         {
@@ -292,7 +292,7 @@ namespace Server {
             public ManualResetEvent completionEvent;
 
             public ConsumableEntry[] buffer;
-            public int head, done, tail;
+            public volatile int head, done, tail;
 
             private Thread thread;
 
