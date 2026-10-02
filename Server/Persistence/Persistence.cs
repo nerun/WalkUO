@@ -47,7 +47,7 @@ namespace Server
                 
             file.Refresh();
 
-            using (var fs = file.OpenWrite())
+            using (var fs = file.Open(FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 var writer = new BinaryFileWriter(fs, true);
 
