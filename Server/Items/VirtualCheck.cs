@@ -277,8 +277,8 @@ namespace Server
                     return;
                 }
 
-                Entries.ForEach(e => e.Parent = null);
-                Entries.Clear();
+                while (Entries.Count > 0)
+                    Entries[Entries.Count - 1].Parent = null;
 
                 AddPage(0);
 
