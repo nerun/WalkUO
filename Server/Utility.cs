@@ -355,6 +355,7 @@ namespace Server
         public static bool IPMatch( string val, IPAddress ip, ref bool valid )
         {
             valid = true;
+            bool matches = true;
 
             string[] split = val.Split( '.' );
 
@@ -460,10 +461,10 @@ namespace Server
                 int b = (byte)(Utility.GetAddressValue( ip ) >> (i * 8));
 
                 if ( b < lowPart || b > highPart )
-                    return false;
+                    matches = false;
             }
 
-            return true;
+            return valid && matches;
         }
 
         public static bool IPMatchClassC( IPAddress ip1, IPAddress ip2 )
