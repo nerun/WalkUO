@@ -1468,13 +1468,22 @@ namespace Server
         private void Enqueue( MemoryStream mem )
         {
             lock (m_WriteQueue)
+            {
                 m_WriteQueue.Enqueue( mem );
 
-            if( m_WorkerThread == null || !m_WorkerThread.IsAlive )
-            {
-                m_WorkerThread = new Thread( new ThreadStart( new WorkerThread( this ).Worker ) );
-                m_WorkerThread.Priority = ThreadPriority.BelowNormal;
-                m_WorkerThread.Start();
+                if( m_WorkerThread == null )
+                {
+                    m_WorkerThread = new Thread( new ThreadStart( new WorkerThread( this ).Worker ) );
+                    m_WorkerThread.Priority = ThreadPriority.BelowNormal;
+                    Interlocked.Increment( ref AsyncWriter.m_ThreadCount );
+
+                    try { m_WorkerThread.Start(); }
+                    catch {
+                        m_WorkerThread = null;
+                        Interlocked.Decrement( ref AsyncWriter.m_ThreadCount );
+                        throw;
+                    }
+                }
             }
         }
 
@@ -1489,24 +1498,24 @@ namespace Server
 
             public void Worker()
             {
-                Interlocked.Increment( ref AsyncWriter.m_ThreadCount );
-
-                int lastCount = 0;
-
-                do {
-                    MemoryStream mem = null;
+                while (true) {
+                    MemoryStream mem;
 
                     lock (m_Owner.m_WriteQueue) {
-                        if ((lastCount = m_Owner.m_WriteQueue.Count) > 0)
-                            mem = m_Owner.m_WriteQueue.Dequeue();
+                        if (m_Owner.m_WriteQueue.Count == 0) {
+                            if( m_Owner.m_Closed )
+                                m_Owner.m_File.Close();
+
+                            m_Owner.m_WorkerThread = null;
+                            break;
+                        }
+
+                        mem = m_Owner.m_WriteQueue.Dequeue();
                     }
 
-                    if (mem != null && mem.Length > 0)
+                    if (mem.Length > 0)
                         mem.WriteTo(m_Owner.m_File);
-                } while (lastCount > 1);
-
-                if( m_Owner.m_Closed )
-                    m_Owner.m_File.Close();
+                }
 
                 if ( Interlocked.Decrement( ref AsyncWriter.m_ThreadCount ) <= 0 )
                     World.NotifyDiskWriteComplete();
@@ -1548,8 +1557,11 @@ namespace Server
 
         public override void Close()
         {
-            Enqueue( m_Mem );
-            m_Closed = true;
+            lock (m_WriteQueue)
+            {
+                m_Closed = true;
+                Enqueue( m_Mem );
+            }
         }
 
         public override long Position
