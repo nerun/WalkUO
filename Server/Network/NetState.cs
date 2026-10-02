@@ -280,10 +280,6 @@ namespace Server.Network {
 
         public void ValidateAllTrades() {
             for ( int i = m_Trades.Count - 1; i >= 0; --i ) {
-                if ( i >= m_Trades.Count ) {
-                    continue;
-                }
-
                 SecureTrade trade = m_Trades[i];
 
                 if ( trade.From.Mobile.Deleted || trade.To.Mobile.Deleted || !trade.From.Mobile.Alive || !trade.To.Mobile.Alive || !trade.From.Mobile.InRange( trade.To.Mobile, 2 ) || trade.From.Mobile.Map != trade.To.Mobile.Map ) {
@@ -294,9 +290,7 @@ namespace Server.Network {
 
         public void CancelAllTrades() {
             for ( int i = m_Trades.Count - 1; i >= 0; --i ) {
-                if ( i < m_Trades.Count ) {
-                    m_Trades[i].Cancel();
-                }
+                m_Trades[i].Cancel();
             }
         }
 

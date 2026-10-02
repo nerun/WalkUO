@@ -159,7 +159,7 @@ namespace Server {
                 buffered.length = 0;
             }
 
-            /*lock ( syncRoot ) {
+            lock ( syncRoot ) {
                 if ( pending.Count > 0 ) {
                     idle.Reset();
                 }
@@ -175,7 +175,7 @@ namespace Server {
                         callback( active[slot] );
                     }
                 }
-            }*/
+            }
 
             idle.WaitOne();
         }
