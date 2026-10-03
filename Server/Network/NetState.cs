@@ -757,8 +757,8 @@ namespace Server.Network {
                 do {
                     result = !m_Socket.SendAsync( m_SendEventArgs );
 
-                    if ( result )
-                        Send_Process( m_SendEventArgs );
+                    if ( result && !Send_Process( m_SendEventArgs ) )
+                        return;
                 } while ( result ); 
             } catch ( Exception ex ) {
                 TraceException( ex );
@@ -768,43 +768,48 @@ namespace Server.Network {
 
         private void Send_Completion( object sender, SocketAsyncEventArgs e )
         {
-            Send_Process( e );
-
-            if ( m_Disposing )
+            if ( !Send_Process( e ) )
                 return;
 
             if ( m_CoalesceSleep >= 0 ) {
                 Thread.Sleep( m_CoalesceSleep );
             }
 
-            SendQueue.Gram gram;
-
-            lock ( m_SendQueue ) {
-                gram = m_SendQueue.Dequeue();
-
-                if (gram == null && m_SendQueue.IsFlushReady)
-                    gram = m_SendQueue.CheckFlushReady();
-            }
-
-            if ( gram != null ) {
-                m_SendEventArgs.SetBuffer( gram.Buffer, 0, gram.Length );
-                Send_Start();
-            } else {
-                lock (_sendL)
-                    _sending = false;
-            }
+            Send_Start();
         }
 
-        private void Send_Process( SocketAsyncEventArgs e )
+        private bool Send_Process( SocketAsyncEventArgs e )
         {
             int bytes = e.BytesTransferred;
 
             if ( e.SocketError != SocketError.Success || bytes <= 0 ) {
                 Dispose( false );
-                return;
+                return false;
             }
 
+            if ( m_Disposing )
+                return false;
+
             m_NextCheckActivity = Core.TickCount + 90000;
+
+            lock (_sendL) {
+                SendQueue.Gram gram;
+
+                lock ( m_SendQueue ) {
+                    gram = m_SendQueue.Dequeue( bytes );
+
+                    if (gram == null && m_SendQueue.IsFlushReady)
+                        gram = m_SendQueue.CheckFlushReady();
+                }
+
+                if ( gram != null ) {
+                    e.SetBuffer( gram.Buffer, gram.Offset, gram.Length - gram.Offset );
+                    return true;
+                } else {
+                    _sending = false;
+                    return false;
+                }
+            }
         }
 
         public static void Pause() {
@@ -951,25 +956,26 @@ namespace Server.Network {
                     Thread.Sleep(m_CoalesceSleep);
                 }
 
-                SendQueue.Gram gram;
+                lock (_sendL) {
+                    SendQueue.Gram gram;
 
-                lock (m_SendQueue) {
-                    gram = m_SendQueue.Dequeue();
+                    lock (m_SendQueue) {
+                        gram = m_SendQueue.Dequeue( bytes );
 
-                    if (gram == null && m_SendQueue.IsFlushReady)
-                        gram = m_SendQueue.CheckFlushReady();
-                }
-
-                if (gram != null) {
-                    try {
-                        s.BeginSend(gram.Buffer, 0, gram.Length, SocketFlags.None, m_OnSend, s);
-                    } catch (Exception ex) {
-                        TraceException(ex);
-                        Dispose(false);
+                        if (gram == null && m_SendQueue.IsFlushReady)
+                            gram = m_SendQueue.CheckFlushReady();
                     }
-                } else {
-                    lock (_sendL)
+
+                    if (gram != null) {
+                        try {
+                            s.BeginSend(gram.Buffer, gram.Offset, gram.Length - gram.Offset, SocketFlags.None, m_OnSend, s);
+                        } catch (Exception ex) {
+                            TraceException(ex);
+                            Dispose(false);
+                        }
+                    } else {
                         _sending = false;
+                    }
                 }
             } catch ( Exception ){
                 Dispose( false );

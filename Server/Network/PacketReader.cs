@@ -60,11 +60,11 @@ namespace Server.Network
                 {
                     byte[] buffer = m_Data;
 
-                    if ( buffer.Length > 0 )
+                    if ( m_Size > 0 )
                         sw.WriteLine( "Client: {0}: Unhandled packet 0x{1:X2}", state, buffer[0] );
 
-                    using ( MemoryStream ms = new MemoryStream( buffer ) )
-                        Utility.FormatBuffer( sw, ms, buffer.Length );
+                    using ( MemoryStream ms = new MemoryStream( buffer, 0, m_Size ) )
+                        Utility.FormatBuffer( sw, ms, m_Size );
 
                     sw.WriteLine();
                     sw.WriteLine();

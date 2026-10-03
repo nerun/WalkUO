@@ -18,6 +18,8 @@
  * with this program; if not, see <https://www.gnu.org/licenses/>.
  ***************************************************************************/
 using System;
+using System.IO;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -47,7 +49,7 @@ namespace Server {
             /*[DllImport("kernel32")]
             internal unsafe static extern int _lread(IntPtr hFile, void* lpBuffer, int wBytes);*/
 
-            [DllImport("kernel32")]
+            [DllImport("kernel32", SetLastError = true)]
             internal unsafe static extern bool ReadFile(IntPtr hFile, void* lpBuffer, uint nNumberOfBytesToRead, ref uint lpNumberOfBytesRead, NativeOverlapped* lpOverlapped);
         }
 
@@ -55,23 +57,59 @@ namespace Server {
         }
 
         public unsafe void Read( IntPtr ptr, void *buffer, int length ) {
-            //UnsafeNativeMethods._lread( ptr, buffer, length );
-            uint lpNumberOfBytesRead = 0;
-            UnsafeNativeMethods.ReadFile(ptr, buffer, (uint)length, ref lpNumberOfBytesRead, null);
+            if ( length < 0 )
+                throw new ArgumentOutOfRangeException( "length" );
+
+            byte* current = (byte*)buffer;
+
+            while ( length > 0 ) {
+                uint bytesRead = 0;
+
+                if ( !UnsafeNativeMethods.ReadFile( ptr, current, (uint)length, ref bytesRead, null ) )
+                    throw new IOException( "Native file read failed.", new Win32Exception( Marshal.GetLastWin32Error() ) );
+
+                if ( bytesRead == 0 )
+                    throw new EndOfStreamException();
+
+                current += (int)bytesRead;
+                length -= (int)bytesRead;
+            }
         }
     }
 
     public sealed class NativeReaderUnix : INativeReader {
         internal class UnsafeNativeMethods {
-            [DllImport("libc")]
-            internal unsafe static extern int read(IntPtr ptr, void* buffer, int length);
+            [DllImport("libc", SetLastError = true)]
+            internal unsafe static extern IntPtr read(IntPtr ptr, void* buffer, UIntPtr length);
         }
 
         public NativeReaderUnix() {
         }
 
         public unsafe void Read( IntPtr ptr, void *buffer, int length ) {
-            UnsafeNativeMethods.read( ptr, buffer, length );
+            if ( length < 0 )
+                throw new ArgumentOutOfRangeException( "length" );
+
+            byte* current = (byte*)buffer;
+
+            while ( length > 0 ) {
+                long bytesRead = UnsafeNativeMethods.read( ptr, current, new UIntPtr( (uint)length ) ).ToInt64();
+
+                if ( bytesRead < 0 ) {
+                    int error = Marshal.GetLastWin32Error();
+
+                    if ( error == 4 ) // EINTR
+                        continue;
+
+                    throw new IOException( "Native file read failed (errno " + error + ")." );
+                }
+
+                if ( bytesRead == 0 )
+                    throw new EndOfStreamException();
+
+                current += (int)bytesRead;
+                length -= (int)bytesRead;
+            }
         }
     }
 }

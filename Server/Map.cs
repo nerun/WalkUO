@@ -2850,7 +2850,7 @@ namespace Server
         public int CompareTo( object other )
         {
             if ( other == null || other is Map )
-                return this.CompareTo( other );
+                return this.CompareTo( (Map) other );
 
             throw new ArgumentException();
         }

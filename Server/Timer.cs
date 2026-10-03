@@ -252,8 +252,18 @@ namespace Server
 
             public static void Change( Timer t, int newIndex, bool isAdd )
             {
-                lock (m_Changed)
+                lock (m_Changed) {
+                    TimerChangeEntry previous;
+
+                    if (m_Changed.TryGetValue(t, out previous)) {
+                        if (newIndex >= 0 && previous.m_IsAdd)
+                            isAdd = true;
+
+                        previous.Free();
+                    }
+
                     m_Changed[t] = TimerChangeEntry.GetInstance(t, newIndex, isAdd);
+                }
                 m_Signal.Set();
             }
 
