@@ -4738,28 +4738,30 @@ namespace Server.Network
                 lock (m_CompressorBuffers)
                     buffer = m_CompressorBuffers.AcquireBuffer();
 
-                Compression.Compress(m_CompiledBuffer, 0, length, buffer, ref length);
+                try {
+                    Compression.Compress(m_CompiledBuffer, 0, length, buffer, ref length);
 
-                if (length <= 0) {
-                    Console.WriteLine("Warning: Compression buffer overflowed on packet 0x{0:X2} ('{1}') (length={2})", m_PacketID, GetType().Name, length);
-                    using (StreamWriter op = new StreamWriter("compression_overflow.log", true))
-                    {
-                        op.WriteLine("{0} Warning: Compression buffer overflowed on packet 0x{1:X2} ('{2}') (length={3})", DateTime.UtcNow, m_PacketID, GetType().Name, length);
-                        op.WriteLine(new System.Diagnostics.StackTrace());
-                    }
-                } else {
-                    m_CompiledLength = length;
-
-                    if (length > BufferSize || (m_State & State.Static) != 0) {
-                        m_CompiledBuffer = new byte[length];
+                    if (length <= 0) {
+                        Console.WriteLine("Warning: Compression buffer overflowed on packet 0x{0:X2} ('{1}') (length={2})", m_PacketID, GetType().Name, length);
+                        using (StreamWriter op = new StreamWriter("compression_overflow.log", true))
+                        {
+                            op.WriteLine("{0} Warning: Compression buffer overflowed on packet 0x{1:X2} ('{2}') (length={3})", DateTime.UtcNow, m_PacketID, GetType().Name, length);
+                            op.WriteLine(new System.Diagnostics.StackTrace());
+                        }
                     } else {
-                        lock (m_Buffers)
-                            m_CompiledBuffer = m_Buffers.AcquireBuffer();
-                        m_State |= State.Buffered;
+                        m_CompiledLength = length;
+
+                        if (length > BufferSize || (m_State & State.Static) != 0) {
+                            m_CompiledBuffer = new byte[length];
+                        } else {
+                            lock (m_Buffers)
+                                m_CompiledBuffer = m_Buffers.AcquireBuffer();
+                            m_State |= State.Buffered;
+                        }
+
+                        Buffer.BlockCopy(buffer, 0, m_CompiledBuffer, 0, length);
                     }
-
-                    Buffer.BlockCopy(buffer, 0, m_CompiledBuffer, 0, length);
-
+                } finally {
                     lock (m_CompressorBuffers)
                         m_CompressorBuffers.ReleaseBuffer(buffer);
                 }
