@@ -85,7 +85,7 @@ namespace Server
 
             int memLength = (int)_memStream.Position;
 
-            if (memLength > 0)
+            if (memLength > 0 || _orderedIndexInfo.Count > 0)
             {
                 byte[] memBuffer = _memStream.GetBuffer();
 
