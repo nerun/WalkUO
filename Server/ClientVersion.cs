@@ -162,7 +162,7 @@ namespace Server
             builder.Append('.');
             builder.Append(m_Revision);
 
-            if (m_Major <= 5 && m_Minor <= 0 && m_Revision <= 6)    //Anything before 5.0.7
+            if (m_Major < 5 || (m_Major == 5 && m_Minor == 0 && m_Revision < 7))    //Anything before 5.0.7
             {
                 if (m_Patch > 0)
                     builder.Append((char)('a' + (m_Patch - 1)));
@@ -208,7 +208,7 @@ namespace Server
 
                 if( br3 < fmt.Length )
                 {
-                    if( m_Major <= 5 && m_Minor <= 0 && m_Revision <= 6 )    //Anything before 5.0.7
+                    if( m_Major < 5 || (m_Major == 5 && m_Minor == 0 && m_Revision < 7) )    //Anything before 5.0.7
                     {
                         if( !Char.IsWhiteSpace( fmt, br3 ) )
                             m_Patch = (fmt[br3] - 'a') + 1;
