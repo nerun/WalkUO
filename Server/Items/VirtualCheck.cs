@@ -353,12 +353,12 @@ namespace Server
                         var platText = platEntry == null ? null : platEntry.Text;
                         var goldText = goldEntry == null ? null : goldEntry.Text;
 
-                        if (!Int32.TryParse(platText, out _Plat))
+                        if (!Int32.TryParse(platText, out _Plat) || _Plat < 0)
                         {
                             User.SendMessage("That is not a valid amount of platinum.");
                             refresh = true;
                         }
-                        else if (!Int32.TryParse(goldText, out _Gold))
+                        else if (!Int32.TryParse(goldText, out _Gold) || _Gold < 0)
                         {
                             User.SendMessage("That is not a valid amount of gold.");
                             refresh = true;

@@ -386,6 +386,11 @@ namespace Server.Network
                         int gold = pvSrc.ReadInt32();
                         int plat = pvSrc.ReadInt32();
 
+                        if (gold < 0 || plat < 0)
+                        {
+                            return;
+                        }
+
                         SecureTrade trade = cont.Trade;
 
                         if (trade != null)
