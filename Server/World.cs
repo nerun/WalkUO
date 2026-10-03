@@ -41,6 +41,9 @@ namespace Server {
 
         private static bool m_Saving;
         private static ManualResetEvent m_DiskWriteHandle = new ManualResetEvent(true);
+        private static readonly object m_DiskWriteSync = new object();
+        private static bool m_DiskWriteProducersActive;
+        private static bool m_DiskWriteCompletePending;
 
         private static Queue<IEntity> _addQueue, _deleteQueue;
 
@@ -61,9 +64,20 @@ namespace Server {
 
         public static void NotifyDiskWriteComplete()
         {
-            if( m_DiskWriteHandle.Set())
+            lock (m_DiskWriteSync)
             {
-                Console.WriteLine("Closing Save Files. ");
+                if (m_DiskWriteProducersActive || AsyncWriter.ThreadCount > 0)
+                {
+                    m_DiskWriteCompletePending = true;
+                    return;
+                }
+
+                m_DiskWriteCompletePending = false;
+
+                if( m_DiskWriteHandle.Set())
+                {
+                    Console.WriteLine("Closing Save Files. ");
+                }
             }
         }
 
@@ -763,7 +777,12 @@ namespace Server {
 
             m_Saving = true;
 
-            m_DiskWriteHandle.Reset();
+            lock (m_DiskWriteSync)
+            {
+                m_DiskWriteProducersActive = true;
+                m_DiskWriteCompletePending = false;
+                m_DiskWriteHandle.Reset();
+            }
 
             if ( message )
                 Broadcast( 0x35, true, "The world is saving, please wait." );
@@ -786,6 +805,14 @@ namespace Server {
             /*using ( SaveMetrics metrics = new SaveMetrics() ) {*/
             strategy.Save( null, permitBackgroundWrite );
             /*}*/
+
+            lock (m_DiskWriteSync)
+            {
+                m_DiskWriteProducersActive = false;
+
+                if (m_DiskWriteCompletePending && AsyncWriter.ThreadCount == 0)
+                    World.NotifyDiskWriteComplete();
+            }
 
             try {
                 EventSink.InvokeWorldSave( new WorldSaveEventArgs( message ) );
