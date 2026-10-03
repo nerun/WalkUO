@@ -395,12 +395,14 @@ namespace Server.Network
                                 trade.From.Gold = gold;
                                 trade.From.Plat = plat;
                                 trade.UpdateFromCurrency();
+                                cont.ClearChecks();
                             }
                             else if (trade.To.Mobile == state.Mobile)
                             {
                                 trade.To.Gold = gold;
                                 trade.To.Plat = plat;
                                 trade.UpdateToCurrency();
+                                cont.ClearChecks();
                             }
                         }
                     }
