@@ -803,16 +803,18 @@ namespace Server {
 
 
             /*using ( SaveMetrics metrics = new SaveMetrics() ) {*/
-            strategy.Save( null, permitBackgroundWrite );
-            /*}*/
+            try {
+                strategy.Save( null, permitBackgroundWrite );
+            } finally {
+                lock (m_DiskWriteSync)
+                {
+                    m_DiskWriteProducersActive = false;
 
-            lock (m_DiskWriteSync)
-            {
-                m_DiskWriteProducersActive = false;
-
-                if (m_DiskWriteCompletePending && AsyncWriter.ThreadCount == 0)
-                    World.NotifyDiskWriteComplete();
+                    if (m_DiskWriteCompletePending && AsyncWriter.ThreadCount == 0)
+                        World.NotifyDiskWriteComplete();
+                }
             }
+            /*}*/
 
             try {
                 EventSink.InvokeWorldSave( new WorldSaveEventArgs( message ) );
