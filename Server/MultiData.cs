@@ -108,7 +108,7 @@ namespace Server
                             {
                                 bin.BaseStream.Seek( lookup, SeekOrigin.Begin );
 
-                                m_Components[index] = new MultiComponentList( bin, length / 12 );
+                                m_Components[index] = new MultiComponentList( bin, length / 12, false );
 
                                 bin.BaseStream.Seek( 24 + (i * 20), SeekOrigin.Begin );
                             }
@@ -521,7 +521,11 @@ namespace Server
                     m_Tiles[x][y] = tiles[x][y].ToArray();
         }
 
-        public MultiComponentList( BinaryReader reader, int count )
+        public MultiComponentList( BinaryReader reader, int count ) : this( reader, count, _PostHSFormat )
+        {
+        }
+
+        internal MultiComponentList( BinaryReader reader, int count, bool postHSFormat )
         {
             MultiTileEntry[] allTiles = m_List = new MultiTileEntry[count];
 
@@ -533,7 +537,7 @@ namespace Server
                 allTiles[i].m_OffsetZ = reader.ReadInt16();
                 allTiles[i].m_Flags = reader.ReadInt32();
 
-                if ( _PostHSFormat )
+                if ( postHSFormat )
                     reader.ReadInt32(); // ??
 
                 MultiTileEntry e = allTiles[i];
