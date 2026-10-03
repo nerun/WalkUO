@@ -256,15 +256,18 @@ namespace Server.Network
 
                         PacketReader r =  new PacketReader( packetBuffer, packetLength, handler.Length != 0 );
 
-                        handler.OnReceive( ns, r );
-                        length = buffer.Length;
+                        try {
+                            handler.OnReceive( ns, r );
+                        } finally {
+                            if ( BufferSize >= packetLength )
+                                m_Buffers.ReleaseBuffer( packetBuffer );
 
-                        if ( BufferSize >= packetLength )
-                            m_Buffers.ReleaseBuffer( packetBuffer );
-
-                        if ( prof != null ) {
-                            prof.Finish( packetLength );
+                            if ( prof != null ) {
+                                prof.Finish( packetLength );
+                            }
                         }
+
+                        length = buffer.Length;
                     } else {
                         break;
                     }
