@@ -23,6 +23,7 @@ using System.Text;
 using System.IO;
 using System.Threading;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 
 using Server;
 using Server.Guilds;
@@ -40,17 +41,28 @@ namespace Server {
         {
             this.PermitBackgroundWrite = permitBackgroundWrite;
 
+            ExceptionDispatchInfo saveError = null;
+
             Thread saveThread = new Thread( delegate() {
-                SaveItems(metrics);
+                try {
+                    SaveItems(metrics);
+                } catch (Exception e) {
+                    saveError = ExceptionDispatchInfo.Capture(e);
+                }
             } );
 
             saveThread.Name = "Item Save Subset";
             saveThread.Start();
 
-            SaveMobiles(metrics);
-            SaveGuilds(metrics);
+            try {
+                SaveMobiles(metrics);
+                SaveGuilds(metrics);
+            } finally {
+                saveThread.Join();
+            }
 
-            saveThread.Join();
+            if (saveError != null)
+                saveError.Throw();
 
             if (permitBackgroundWrite && UseSequentialWriters)    //If we're permitted to write in the background, but we don't anyways, then notify.
                 World.NotifyDiskWriteComplete();
