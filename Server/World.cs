@@ -784,31 +784,39 @@ namespace Server {
                 m_DiskWriteHandle.Reset();
             }
 
-            if ( message )
-                Broadcast( 0x35, true, "The world is saving, please wait." );
+            SaveStrategy strategy;
+            Stopwatch watch;
+            bool saveFailed = true;
 
-            SaveStrategy strategy = SaveStrategy.Acquire();
-            Console.WriteLine( "Core: Using {0} save strategy", strategy.Name.ToLowerInvariant() );
-
-            Console.Write( "World: Saving..." );
-
-            Stopwatch watch = Stopwatch.StartNew();
-
-            if ( !Directory.Exists( "Saves/Mobiles/" ) )
-                Directory.CreateDirectory( "Saves/Mobiles/" );
-            if ( !Directory.Exists( "Saves/Items/" ) )
-                Directory.CreateDirectory( "Saves/Items/" );
-            if ( !Directory.Exists( "Saves/Guilds/" ) )
-                Directory.CreateDirectory( "Saves/Guilds/" );
-
-
-            /*using ( SaveMetrics metrics = new SaveMetrics() ) {*/
             try {
+                if ( message )
+                    Broadcast( 0x35, true, "The world is saving, please wait." );
+
+                strategy = SaveStrategy.Acquire();
+                Console.WriteLine( "Core: Using {0} save strategy", strategy.Name.ToLowerInvariant() );
+
+                Console.Write( "World: Saving..." );
+
+                watch = Stopwatch.StartNew();
+
+                if ( !Directory.Exists( "Saves/Mobiles/" ) )
+                    Directory.CreateDirectory( "Saves/Mobiles/" );
+                if ( !Directory.Exists( "Saves/Items/" ) )
+                    Directory.CreateDirectory( "Saves/Items/" );
+                if ( !Directory.Exists( "Saves/Guilds/" ) )
+                    Directory.CreateDirectory( "Saves/Guilds/" );
+
+
+                /*using ( SaveMetrics metrics = new SaveMetrics() ) {*/
                 strategy.Save( null, permitBackgroundWrite );
+                saveFailed = false;
             } finally {
                 lock (m_DiskWriteSync)
                 {
                     m_DiskWriteProducersActive = false;
+
+                    if (saveFailed)
+                        m_DiskWriteCompletePending = true;
 
                     if (m_DiskWriteCompletePending && AsyncWriter.ThreadCount == 0)
                         World.NotifyDiskWriteComplete();
@@ -819,6 +827,7 @@ namespace Server {
             try {
                 EventSink.InvokeWorldSave( new WorldSaveEventArgs( message ) );
             } catch ( Exception e ) {
+                World.NotifyDiskWriteComplete();
                 throw new Exception( "World Save event threw an exception.  Save failed!", e );
             }
 
