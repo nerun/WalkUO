@@ -364,16 +364,35 @@ namespace Server
         {
             BinaryFileWriter bfw = new BinaryFileWriter(path, false);
 
-            bfw.Write(types.Count);
+            ExceptionDispatchInfo error = null;
 
-            foreach (Type type in types)
+            try
             {
-                bfw.Write(type.FullName);
+                bfw.Write(types.Count);
+
+                foreach (Type type in types)
+                {
+                    bfw.Write(type.FullName);
+                }
+
+                bfw.Flush();
+            }
+            catch (Exception ex)
+            {
+                error = ExceptionDispatchInfo.Capture(ex);
+            }
+            finally
+            {
+                try { bfw.Close(); }
+                catch
+                {
+                    if (error == null)
+                        throw;
+                }
             }
 
-            bfw.Flush();
-
-            bfw.Close();
+            if (error != null)
+                error.Throw();
         }
     }
 
