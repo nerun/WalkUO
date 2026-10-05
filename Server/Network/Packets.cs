@@ -793,7 +793,7 @@ namespace Server.Network
                 m_Stream.Write( (byte) 0 );
             else
             {
-                int questionLength = question.Length;
+                int questionLength = Math.Min( 255, question.Length );
                 m_Stream.Write( (byte) questionLength );
                 m_Stream.WriteAsciiFixed( question, questionLength );
             }
@@ -817,7 +817,7 @@ namespace Server.Network
                     m_Stream.Write( (byte) 0 );
                 else
                 {
-                    int nameLength = name.Length;
+                    int nameLength = Math.Min( 255, name.Length );
                     m_Stream.Write( (byte) nameLength );
                     m_Stream.WriteAsciiFixed( name, nameLength );
                 }
@@ -840,7 +840,7 @@ namespace Server.Network
                 m_Stream.Write( (byte) 0 );
             else
             {
-                int questionLength = question.Length;
+                int questionLength = Math.Min( 255, question.Length );
                 m_Stream.Write( (byte) questionLength );
                 m_Stream.WriteAsciiFixed( question, questionLength );
             }
@@ -861,7 +861,7 @@ namespace Server.Network
                     m_Stream.Write( (byte) 0 );
                 else
                 {
-                    int answerLength = answer.Length;
+                    int answerLength = Math.Min( 255, answer.Length );
                     m_Stream.Write( (byte) answerLength );
                     m_Stream.WriteAsciiFixed( answer, answerLength );
                 }
