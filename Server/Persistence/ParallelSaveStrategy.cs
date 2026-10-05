@@ -24,6 +24,7 @@ using System.Text;
 using System.IO;
 using System.Threading;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 
 using Server;
 using Server.Guilds;
@@ -63,40 +64,46 @@ namespace Server {
         {
             this.metrics = metrics;
 
-            OpenFiles();
+            try {
+                try {
+                    OpenFiles();
 
-            consumers = new Consumer[GetThreadCount()];
+                    consumers = new Consumer[GetThreadCount()];
 
-            for ( int i = 0; i < consumers.Length; ++i ) {
-                consumers[i] = new Consumer( this, 256 );
-            }
+                    for ( int i = 0; i < consumers.Length; ++i ) {
+                        consumers[i] = new Consumer( this, 256 );
+                    }
 
-            IEnumerable<ISerializable> collection = new Producer();
+                    IEnumerable<ISerializable> collection = new Producer();
 
-            foreach ( ISerializable value in collection ) {
-                while ( !Enqueue( value ) ) {
-                    if ( !Commit() ) {
-                        Thread.Sleep( 0 );
+                    foreach ( ISerializable value in collection ) {
+                        while ( !Enqueue( value ) ) {
+                            if ( !Commit() ) {
+                                Thread.Sleep( 0 );
+                            }
+                        }
+                    }
+
+                    finished = true;
+
+                    SaveTypeDatabases();
+                } finally {
+                    finished = true;
+
+                    if ( consumers != null ) {
+                        foreach ( Consumer consumer in consumers ) {
+                            if ( consumer != null ) {
+                                consumer.completionEvent.WaitOne();
+                                consumer.completionEvent.Close();
+                            }
+                        }
                     }
                 }
+
+                Commit();
+            } finally {
+                CloseFiles();
             }
-
-            finished = true;
-
-            SaveTypeDatabases();
-
-            WaitHandle.WaitAll(
-                Array.ConvertAll<Consumer, WaitHandle>(
-                    consumers,
-                    delegate( Consumer input ) {
-                        return input.completionEvent;
-                    }
-                )
-            );
-
-            Commit();
-
-            CloseFiles();
         }
 
         public override void ProcessDecay() {
@@ -155,14 +162,20 @@ namespace Server {
         }
 
         private void CloseFiles() {
-            itemData.Close();
-            itemIndex.Close();
+            ExceptionDispatchInfo error = null;
 
-            mobileData.Close();
-            mobileIndex.Close();
+            foreach ( SequentialFileWriter file in new SequentialFileWriter[] { itemData, itemIndex, mobileData, mobileIndex, guildData, guildIndex } ) {
+                if ( file != null ) {
+                    try { file.Close(); }
+                    catch ( Exception ex ) {
+                        if ( error == null )
+                            error = ExceptionDispatchInfo.Capture( ex );
+                    }
+                }
+            }
 
-            guildData.Close();
-            guildIndex.Close();
+            if ( error != null )
+                error.Throw();
 
             World.NotifyDiskWriteComplete();
         }
@@ -222,6 +235,7 @@ namespace Server {
         private bool Enqueue( ISerializable value ) {
             for ( int i = 0; i < consumers.Length; ++i ) {
                 Consumer consumer = consumers[cycle++ % consumers.Length];
+                consumer.ThrowIfFailed();
 
                 if ( ( consumer.tail - consumer.head ) < consumer.buffer.Length ) {
                     consumer.buffer[consumer.tail % consumer.buffer.Length].value = value;
@@ -239,6 +253,7 @@ namespace Server {
 
             for ( int i = 0; i < consumers.Length; ++i ) {
                 Consumer consumer = consumers[i];
+                consumer.ThrowIfFailed();
 
                 while ( consumer.head < consumer.done ) {
                     OnSerialized( consumer.buffer[consumer.head % consumer.buffer.Length] );
@@ -295,6 +310,14 @@ namespace Server {
             public volatile int head, done, tail;
 
             private Thread thread;
+            private volatile ExceptionDispatchInfo failure;
+
+            public void ThrowIfFailed() {
+                ExceptionDispatchInfo error = failure;
+
+                if ( error != null )
+                    error.Throw();
+            }
 
             public Consumer( ParallelSaveStrategy owner, int bufferSize ) {
                 this.owner = owner;
@@ -322,10 +345,11 @@ namespace Server {
                     }
 
                     Process();
-
-                    completionEvent.Set();
                 } catch ( Exception ex ) {
+                    failure = ExceptionDispatchInfo.Capture( ex );
                     Console.WriteLine( ex );
+                } finally {
+                    completionEvent.Set();
                 }
             }
 
