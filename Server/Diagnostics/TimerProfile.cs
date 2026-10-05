@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Threading;
 
 namespace Server.Diagnostics {
     public class TimerProfile : BaseProfile {
@@ -54,29 +55,41 @@ namespace Server.Diagnostics {
 
         public long Created {
             get {
-                return _created;
+                return Interlocked.Read( ref _created );
             }
             set {
-                _created = value;
+                Interlocked.Exchange( ref _created, value );
             }
         }
 
         public long Started {
             get {
-                return _started;
+                return Interlocked.Read( ref _started );
             }
             set {
-                _started = value;
+                Interlocked.Exchange( ref _started, value );
             }
         }
 
         public long Stopped {
             get {
-                return _stopped;
+                return Interlocked.Read( ref _stopped );
             }
             set {
-                _stopped = value;
+                Interlocked.Exchange( ref _stopped, value );
             }
+        }
+
+        internal void IncrementCreated() {
+            Interlocked.Increment( ref _created );
+        }
+
+        internal void IncrementStarted() {
+            Interlocked.Increment( ref _started );
+        }
+
+        internal void IncrementStopped() {
+            Interlocked.Increment( ref _stopped );
         }
 
         public TimerProfile( string name )
@@ -86,7 +99,7 @@ namespace Server.Diagnostics {
         public override void WriteTo( TextWriter op ) {
             base.WriteTo( op );
 
-            op.Write( "\t{0,12:N0} {1,12:N0} {2,-12:N0}", _created, _started, _stopped );
+            op.Write( "\t{0,12:N0} {1,12:N0} {2,-12:N0}", Created, Started, Stopped );
         }
     }
 }

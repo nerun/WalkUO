@@ -428,7 +428,7 @@ namespace Server
             TimerProfile prof = GetProfile();
 
             if ( prof != null ) {
-                prof.Created++;
+                prof.IncrementCreated();
             }
         }
 
@@ -668,7 +668,7 @@ namespace Server
                 TimerProfile prof = GetProfile();
 
                 if ( prof != null ) {
-                    prof.Started++;
+                    prof.IncrementStarted();
                 }
             }
         }
@@ -683,7 +683,7 @@ namespace Server
                 TimerProfile prof = GetProfile();
 
                 if ( prof != null ) {
-                    prof.Stopped++;
+                    prof.IncrementStopped();
                 }
             }
         }
