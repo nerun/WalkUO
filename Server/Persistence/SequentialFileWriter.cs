@@ -43,7 +43,12 @@ namespace Server {
 
             try {
                 fileQueue = new FileQueue(
+#if MONO
+                    // Mono's asynchronous writes share the stream position and buffer.
+                    1,
+#else
                     Math.Max( 1, FileOperations.Concurrency ),
+#endif
                     FileCallback
                 );
             } catch {
