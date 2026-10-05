@@ -66,9 +66,7 @@ namespace Server
                     m_Tiles[i] = old[i];
             }
 
-            m_Tiles[m_Count].m_ID = id;
-            m_Tiles[m_Count].m_Z = z;
-            ++m_Count;
+            m_Tiles[m_Count++] = new StaticTile( id, z );
         }
 
         private static StaticTile[] m_EmptyTiles = new StaticTile[0];
