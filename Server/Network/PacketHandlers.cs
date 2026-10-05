@@ -1901,7 +1901,7 @@ namespace Server.Network
 
                         int index = pvSrc.ReadUInt16();
 
-                        if ( index >= 0 && index < menu.Entries.Length )
+                        if ( index >= 0 && index < Math.Min( 255, menu.Entries.Length ) )
                         {
                             ContextMenuEntry e = menu.Entries[index];
 

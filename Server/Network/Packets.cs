@@ -800,7 +800,7 @@ namespace Server.Network
 
             ItemListEntry[] entries = menu.Entries;
 
-            int entriesLength = (byte)entries.Length;
+            int entriesLength = Math.Min( 255, entries.Length );
 
             m_Stream.Write( (byte) entriesLength );
 
@@ -847,7 +847,7 @@ namespace Server.Network
 
             string[] answers = menu.Answers;
 
-            int answersLength = (byte)answers.Length;
+            int answersLength = Math.Min( 255, answers.Length );
 
             m_Stream.Write( (byte) answersLength );
 
@@ -930,7 +930,7 @@ namespace Server.Network
         {
             ContextMenuEntry[] entries = menu.Entries;
 
-            int length = (byte) entries.Length;
+            int length = Math.Min( 255, entries.Length );
 
             this.EnsureCapacity( 12 + (length * 8) );
 
@@ -979,7 +979,7 @@ namespace Server.Network
         {
             ContextMenuEntry[] entries = menu.Entries;
 
-            int length = (byte) entries.Length;
+            int length = Math.Min( 255, entries.Length );
 
             this.EnsureCapacity( 12 + (length * 8) );
 

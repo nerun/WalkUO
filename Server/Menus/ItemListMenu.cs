@@ -84,7 +84,7 @@ namespace Server.Menus.ItemLists
         {
             get
             {
-                return m_Entries.Length;
+                return Math.Min( 255, m_Entries.Length );
             }
         }
 

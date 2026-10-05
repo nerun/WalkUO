@@ -42,7 +42,7 @@ namespace Server.Menus.Questions
         {
             get
             {
-                return m_Answers.Length;
+                return Math.Min( 255, m_Answers.Length );
             }
         }
 
