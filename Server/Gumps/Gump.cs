@@ -355,8 +355,9 @@ namespace Server.Gumps
 
         public void SendTo( NetState state )
         {
+            Packet packet = Compile( state );
             state.AddGump( this );
-            state.Send( Compile( state ) );
+            state.Send( packet );
         }
 
         public static byte[] StringToBuffer( string str )
