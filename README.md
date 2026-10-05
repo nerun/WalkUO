@@ -19,8 +19,18 @@ C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc /optimize /unsafe /t:exe /ou
 #### Linux (MONO)
 
 ```console
-mcs -langversion:5 -optimize+ -unsafe -t:exe -out:WalkUO.exe -win32icon:Server/walkuo.ico -nowarn:219,414 -d:NEWTIMERS -d:NEWPARENT -d:MONO -reference:System.Drawing -recurse:'Server/*.cs'
+TERM=dumb mcs -langversion:5 -optimize+ -unsafe -t:exe -out:WalkUO.exe -win32icon:Server/walkuo.ico -nowarn:219,414 -d:NEWTIMERS -d:NEWPARENT -d:MONO -reference:System.Drawing -recurse:'Server/*.cs'
 ```
+
+To run the server:
+
+```console
+TERM=dumb mono WalkUO.exe
+```
+
+> [!note]
+>
+> `TERM=dumb` selects a minimal terminal definition to avoid Mono console initialization failures (`File must be smaller than 4K`) with larger terminfo entries. Use it for both compilation and execution.
 
 ## Client
 

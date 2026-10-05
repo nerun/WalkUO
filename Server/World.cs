@@ -41,6 +41,9 @@ namespace Server {
 
         private static bool m_Saving;
         private static ManualResetEvent m_DiskWriteHandle = new ManualResetEvent(true);
+        private static readonly object m_DiskWriteSync = new object();
+        private static bool m_DiskWriteProducersActive;
+        private static bool m_DiskWriteCompletePending;
 
         private static Queue<IEntity> _addQueue, _deleteQueue;
 
@@ -61,9 +64,20 @@ namespace Server {
 
         public static void NotifyDiskWriteComplete()
         {
-            if( m_DiskWriteHandle.Set())
+            lock (m_DiskWriteSync)
             {
-                Console.WriteLine("Closing Save Files. ");
+                if (m_DiskWriteProducersActive || AsyncWriter.ThreadCount > 0)
+                {
+                    m_DiskWriteCompletePending = true;
+                    return;
+                }
+
+                m_DiskWriteCompletePending = false;
+
+                if( m_DiskWriteHandle.Set())
+                {
+                    Console.WriteLine("Closing Save Files. ");
+                }
             }
         }
 
@@ -763,33 +777,57 @@ namespace Server {
 
             m_Saving = true;
 
-            m_DiskWriteHandle.Reset();
+            lock (m_DiskWriteSync)
+            {
+                m_DiskWriteProducersActive = true;
+                m_DiskWriteCompletePending = false;
+                m_DiskWriteHandle.Reset();
+            }
 
-            if ( message )
-                Broadcast( 0x35, true, "The world is saving, please wait." );
+            SaveStrategy strategy;
+            Stopwatch watch;
+            bool saveFailed = true;
 
-            SaveStrategy strategy = SaveStrategy.Acquire();
-            Console.WriteLine( "Core: Using {0} save strategy", strategy.Name.ToLowerInvariant() );
+            try {
+                if ( message )
+                    Broadcast( 0x35, true, "The world is saving, please wait." );
 
-            Console.Write( "World: Saving..." );
+                strategy = SaveStrategy.Acquire();
+                Console.WriteLine( "Core: Using {0} save strategy", strategy.Name.ToLowerInvariant() );
 
-            Stopwatch watch = Stopwatch.StartNew();
+                Console.Write( "World: Saving..." );
 
-            if ( !Directory.Exists( "Saves/Mobiles/" ) )
-                Directory.CreateDirectory( "Saves/Mobiles/" );
-            if ( !Directory.Exists( "Saves/Items/" ) )
-                Directory.CreateDirectory( "Saves/Items/" );
-            if ( !Directory.Exists( "Saves/Guilds/" ) )
-                Directory.CreateDirectory( "Saves/Guilds/" );
+                watch = Stopwatch.StartNew();
+
+                if ( !Directory.Exists( "Saves/Mobiles/" ) )
+                    Directory.CreateDirectory( "Saves/Mobiles/" );
+                if ( !Directory.Exists( "Saves/Items/" ) )
+                    Directory.CreateDirectory( "Saves/Items/" );
+                if ( !Directory.Exists( "Saves/Guilds/" ) )
+                    Directory.CreateDirectory( "Saves/Guilds/" );
 
 
-            /*using ( SaveMetrics metrics = new SaveMetrics() ) {*/
-            strategy.Save( null, permitBackgroundWrite );
+                /*using ( SaveMetrics metrics = new SaveMetrics() ) {*/
+                strategy.Save( null, permitBackgroundWrite );
+                saveFailed = false;
+            } finally {
+                lock (m_DiskWriteSync)
+                {
+                    m_DiskWriteProducersActive = false;
+
+                    if (saveFailed)
+                        m_DiskWriteCompletePending = true;
+
+                    if (m_DiskWriteCompletePending && AsyncWriter.ThreadCount == 0)
+                        World.NotifyDiskWriteComplete();
+                }
+            }
             /*}*/
 
             try {
                 EventSink.InvokeWorldSave( new WorldSaveEventArgs( message ) );
             } catch ( Exception e ) {
+                World.NotifyDiskWriteComplete();
                 throw new Exception( "World Save event threw an exception.  Save failed!", e );
             }
 

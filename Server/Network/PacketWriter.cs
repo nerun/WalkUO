@@ -300,7 +300,7 @@ namespace Server.Network
             m_Stream.SetLength( m_Stream.Length + size );
 
             if ( ( length * 2 ) >= size )
-                m_Stream.Position += Encoding.Unicode.GetBytes( value, 0, length, m_Stream.GetBuffer(), (int)m_Stream.Position );
+                m_Stream.Position += Encoding.Unicode.GetBytes( value, 0, size / 2, m_Stream.GetBuffer(), (int)m_Stream.Position );
             else
             {
                 Encoding.Unicode.GetBytes( value, 0, length, m_Stream.GetBuffer(), (int)m_Stream.Position );
@@ -367,7 +367,7 @@ namespace Server.Network
             m_Stream.SetLength( m_Stream.Length + size );
 
             if ( ( length * 2 ) >= size )
-                m_Stream.Position += Encoding.BigEndianUnicode.GetBytes( value, 0, length, m_Stream.GetBuffer(), (int)m_Stream.Position );
+                m_Stream.Position += Encoding.BigEndianUnicode.GetBytes( value, 0, size / 2, m_Stream.GetBuffer(), (int)m_Stream.Position );
             else
             {
                 Encoding.BigEndianUnicode.GetBytes( value, 0, length, m_Stream.GetBuffer(), (int)m_Stream.Position );

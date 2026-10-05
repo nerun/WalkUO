@@ -262,10 +262,12 @@ namespace Server
 
         public override void Close()
         {
-            if( m_Index > 0 )
-                Flush();
-
-            m_File.Close();
+            try {
+                if( m_Index > 0 )
+                    Flush();
+            } finally {
+                m_File.Close();
+            }
         }
 
         public override void WriteEncodedInt( int value )

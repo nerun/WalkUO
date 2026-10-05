@@ -65,7 +65,7 @@ namespace Server.Targeting
             Target targ = m.Target;
 
             if ( targ != null )
-                targ.OnTargetCancel( m, TargetCancelType.Canceled );
+                targ.Cancel( m, TargetCancelType.Canceled );
         }
 
         private Timer m_TimeoutTimer;

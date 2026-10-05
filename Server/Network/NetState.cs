@@ -163,6 +163,7 @@ namespace Server.Network {
             }
             set {
                 m_Version = value;
+                _ProtocolChanges = 0;
 
                 if ( value >= m_Version704565 ) {
                     _ProtocolChanges = ProtocolChanges.Version704565;

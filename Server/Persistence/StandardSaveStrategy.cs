@@ -68,138 +68,154 @@ namespace Server {
         {
             Dictionary<Serial, Mobile> mobiles = World.Mobiles;
 
-            GenericWriter idx;
-            GenericWriter tdb;
-            GenericWriter bin;
+            GenericWriter idx = null;
+            GenericWriter tdb = null;
+            GenericWriter bin = null;
 
-            if (UseSequentialWriters)
-            {
-                idx = new BinaryFileWriter( World.MobileIndexPath, false );
-                tdb = new BinaryFileWriter( World.MobileTypesPath, false );
-                bin = new BinaryFileWriter( World.MobileDataPath, true );
-            } else {
-                idx = new AsyncWriter( World.MobileIndexPath, false );
-                tdb = new AsyncWriter( World.MobileTypesPath, false );
-                bin = new AsyncWriter( World.MobileDataPath, true );
-            }
-
-            idx.Write( ( int ) mobiles.Count );
-            foreach ( Mobile m in mobiles.Values ) {
-                long start = bin.Position;
-
-                idx.Write( ( int ) m.m_TypeRef );
-                idx.Write( ( int ) m.Serial );
-                idx.Write( ( long ) start );
-
-                m.Serialize( bin );
-
-                if ( metrics != null ) {
-                    metrics.OnMobileSaved( ( int ) ( bin.Position - start ) );
+            try {
+                if (UseSequentialWriters)
+                {
+                    idx = new BinaryFileWriter( World.MobileIndexPath, false );
+                    tdb = new BinaryFileWriter( World.MobileTypesPath, false );
+                    bin = new BinaryFileWriter( World.MobileDataPath, true );
+                } else {
+                    idx = new AsyncWriter( World.MobileIndexPath, false );
+                    tdb = new AsyncWriter( World.MobileTypesPath, false );
+                    bin = new AsyncWriter( World.MobileDataPath, true );
                 }
 
-                idx.Write( ( int ) ( bin.Position - start ) );
+                idx.Write( ( int ) mobiles.Count );
+                foreach ( Mobile m in mobiles.Values ) {
+                    long start = bin.Position;
 
-                m.FreeCache();
+                    idx.Write( ( int ) m.m_TypeRef );
+                    idx.Write( ( int ) m.Serial );
+                    idx.Write( ( long ) start );
+
+                    m.Serialize( bin );
+
+                    if ( metrics != null ) {
+                        metrics.OnMobileSaved( ( int ) ( bin.Position - start ) );
+                    }
+
+                    idx.Write( ( int ) ( bin.Position - start ) );
+
+                    m.FreeCache();
+                }
+
+                tdb.Write( ( int ) World.m_MobileTypes.Count );
+
+                for ( int i = 0; i < World.m_MobileTypes.Count; ++i )
+                    tdb.Write( World.m_MobileTypes[i].FullName );
+            } finally {
+                CloseWriters( idx, tdb, bin );
             }
-
-            tdb.Write( ( int ) World.m_MobileTypes.Count );
-
-            for ( int i = 0; i < World.m_MobileTypes.Count; ++i )
-                tdb.Write( World.m_MobileTypes[i].FullName );
-
-            idx.Close();
-            tdb.Close();
-            bin.Close();
         }
 
         protected void SaveItems(SaveMetrics metrics)
         {
             Dictionary<Serial, Item> items = World.Items;
 
-            GenericWriter idx;
-            GenericWriter tdb;
-            GenericWriter bin;
+            GenericWriter idx = null;
+            GenericWriter tdb = null;
+            GenericWriter bin = null;
 
-            if (UseSequentialWriters)
-            {
-                idx = new BinaryFileWriter( World.ItemIndexPath, false );
-                tdb = new BinaryFileWriter( World.ItemTypesPath, false );
-                bin = new BinaryFileWriter( World.ItemDataPath, true );
-            } else {
-                idx = new AsyncWriter( World.ItemIndexPath, false );
-                tdb = new AsyncWriter( World.ItemTypesPath, false );
-                bin = new AsyncWriter( World.ItemDataPath, true );
-            }
-
-            idx.Write( ( int ) items.Count );
-
-            DateTime n = DateTime.UtcNow;
-
-            foreach ( Item item in items.Values ) {
-                if (item.Decays && item.Parent == null && item.Map != Map.Internal && (item.LastMoved + item.DecayTime) <= n)
+            try {
+                if (UseSequentialWriters)
                 {
-                    _decayQueue.Enqueue( item );
+                    idx = new BinaryFileWriter( World.ItemIndexPath, false );
+                    tdb = new BinaryFileWriter( World.ItemTypesPath, false );
+                    bin = new BinaryFileWriter( World.ItemDataPath, true );
+                } else {
+                    idx = new AsyncWriter( World.ItemIndexPath, false );
+                    tdb = new AsyncWriter( World.ItemTypesPath, false );
+                    bin = new AsyncWriter( World.ItemDataPath, true );
                 }
 
-                long start = bin.Position;
+                idx.Write( ( int ) items.Count );
 
-                idx.Write( ( int ) item.m_TypeRef );
-                idx.Write( ( int ) item.Serial );
-                idx.Write( ( long ) start );
+                DateTime n = DateTime.UtcNow;
 
-                item.Serialize( bin );
+                foreach ( Item item in items.Values ) {
+                    if (item.Decays && item.Parent == null && item.Map != Map.Internal && (item.LastMoved + item.DecayTime) <= n)
+                    {
+                        _decayQueue.Enqueue( item );
+                    }
 
-                if ( metrics != null ) {
-                    metrics.OnItemSaved( ( int ) ( bin.Position - start ) );
+                    long start = bin.Position;
+
+                    idx.Write( ( int ) item.m_TypeRef );
+                    idx.Write( ( int ) item.Serial );
+                    idx.Write( ( long ) start );
+
+                    item.Serialize( bin );
+
+                    if ( metrics != null ) {
+                        metrics.OnItemSaved( ( int ) ( bin.Position - start ) );
+                    }
+
+                    idx.Write( ( int ) ( bin.Position - start ) );
+
+                    item.FreeCache();
                 }
 
-                idx.Write( ( int ) ( bin.Position - start ) );
-
-                item.FreeCache();
+                tdb.Write( ( int ) World.m_ItemTypes.Count );
+                for ( int i = 0; i < World.m_ItemTypes.Count; ++i )
+                    tdb.Write( World.m_ItemTypes[i].FullName );
+            } finally {
+                CloseWriters( idx, tdb, bin );
             }
-
-            tdb.Write( ( int ) World.m_ItemTypes.Count );
-            for ( int i = 0; i < World.m_ItemTypes.Count; ++i )
-                tdb.Write( World.m_ItemTypes[i].FullName );
-
-            idx.Close();
-            tdb.Close();
-            bin.Close();
         }
 
         protected void SaveGuilds(SaveMetrics metrics)
         {
-            GenericWriter idx;
-            GenericWriter bin;
+            GenericWriter idx = null;
+            GenericWriter bin = null;
 
-            if (UseSequentialWriters)
-            {
-                idx = new BinaryFileWriter( World.GuildIndexPath, false );
-                bin = new BinaryFileWriter( World.GuildDataPath, true );
-            } else {
-                idx = new AsyncWriter( World.GuildIndexPath, false );
-                bin = new AsyncWriter( World.GuildDataPath, true );
-            }
-
-            idx.Write( ( int ) BaseGuild.List.Count );
-            foreach ( BaseGuild guild in BaseGuild.List.Values ) {
-                long start = bin.Position;
-
-                idx.Write( ( int ) 0 );//guilds have no typeid
-                idx.Write( ( int ) guild.Id );
-                idx.Write( ( long ) start );
-
-                guild.Serialize( bin );
-
-                if ( metrics != null ) {
-                    metrics.OnGuildSaved( ( int ) ( bin.Position - start ) );
+            try {
+                if (UseSequentialWriters)
+                {
+                    idx = new BinaryFileWriter( World.GuildIndexPath, false );
+                    bin = new BinaryFileWriter( World.GuildDataPath, true );
+                } else {
+                    idx = new AsyncWriter( World.GuildIndexPath, false );
+                    bin = new AsyncWriter( World.GuildDataPath, true );
                 }
 
-                idx.Write( ( int ) ( bin.Position - start ) );
-            }
+                idx.Write( ( int ) BaseGuild.List.Count );
+                foreach ( BaseGuild guild in BaseGuild.List.Values ) {
+                    long start = bin.Position;
 
-            idx.Close();
-            bin.Close();
+                    idx.Write( ( int ) 0 );//guilds have no typeid
+                    idx.Write( ( int ) guild.Id );
+                    idx.Write( ( long ) start );
+
+                    guild.Serialize( bin );
+
+                    if ( metrics != null ) {
+                        metrics.OnGuildSaved( ( int ) ( bin.Position - start ) );
+                    }
+
+                    idx.Write( ( int ) ( bin.Position - start ) );
+                }
+            } finally {
+                CloseWriters( idx, null, bin );
+            }
+        }
+
+        private static void CloseWriters( GenericWriter idx, GenericWriter tdb, GenericWriter bin ) {
+            try {
+                if ( idx != null )
+                    idx.Close();
+            } finally {
+                try {
+                    if ( tdb != null )
+                        tdb.Close();
+                } finally {
+                    if ( bin != null )
+                        bin.Close();
+                }
+            }
         }
 
         public override void ProcessDecay() {
