@@ -27,7 +27,9 @@ namespace Server.Diagnostics {
 
         public static IEnumerable<GumpProfile> Profiles {
             get {
-                return _profiles.Values;
+                lock ( _profiles ) {
+                    return new List<GumpProfile>( _profiles.Values );
+                }
             }
         }
 
@@ -36,13 +38,15 @@ namespace Server.Diagnostics {
                 return null;
             }
 
-            GumpProfile prof;
+            lock ( _profiles ) {
+                GumpProfile prof;
 
-            if ( !_profiles.TryGetValue( type, out prof ) ) {
-                _profiles.Add( type, prof = new GumpProfile( type ) );
+                if ( !_profiles.TryGetValue( type, out prof ) ) {
+                    _profiles.Add( type, prof = new GumpProfile( type ) );
+                }
+
+                return prof;
             }
-
-            return prof;
         }
 
         public GumpProfile( Type type )

@@ -28,7 +28,9 @@ namespace Server.Diagnostics {
 
         public static IEnumerable<TimerProfile> Profiles {
             get {
-                return _profiles.Values;
+                lock ( _profiles ) {
+                    return new List<TimerProfile>( _profiles.Values );
+                }
             }
         }
 
@@ -37,13 +39,15 @@ namespace Server.Diagnostics {
                 return null;
             }
 
-            TimerProfile prof;
+            lock ( _profiles ) {
+                TimerProfile prof;
 
-            if ( !_profiles.TryGetValue( name, out prof ) ) {
-                _profiles.Add( name, prof = new TimerProfile( name ) );
+                if ( !_profiles.TryGetValue( name, out prof ) ) {
+                    _profiles.Add( name, prof = new TimerProfile( name ) );
+                }
+
+                return prof;
             }
-
-            return prof;
         }
 
         private long _created, _started, _stopped;

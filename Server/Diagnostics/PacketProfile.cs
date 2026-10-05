@@ -62,7 +62,9 @@ namespace Server.Diagnostics {
 
         public static IEnumerable<PacketSendProfile> Profiles {
             get {
-                return _profiles.Values;
+                lock ( typeof( PacketSendProfile ) ) {
+                    return new List<PacketSendProfile>( _profiles.Values );
+                }
             }
         }
 
@@ -99,7 +101,9 @@ namespace Server.Diagnostics {
 
         public static IEnumerable<PacketReceiveProfile> Profiles {
             get {
-                return _profiles.Values;
+                lock ( typeof( PacketReceiveProfile ) ) {
+                    return new List<PacketReceiveProfile>( _profiles.Values );
+                }
             }
         }
 
