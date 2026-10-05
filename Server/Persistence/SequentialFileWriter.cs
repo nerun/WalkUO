@@ -41,10 +41,15 @@ namespace Server {
 
             this.fileStream = FileOperations.OpenSequentialStream( path, FileMode.Create, FileAccess.Write, FileShare.None );
 
-            fileQueue = new FileQueue(
-                Math.Max( 1, FileOperations.Concurrency ),
-                FileCallback
-            );
+            try {
+                fileQueue = new FileQueue(
+                    Math.Max( 1, FileOperations.Concurrency ),
+                    FileCallback
+                );
+            } catch {
+                fileStream.Close();
+                throw;
+            }
         }
 
         public override long Position {
