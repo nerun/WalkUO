@@ -47,6 +47,7 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 
 using Server;
 using Server.Guilds;
@@ -81,30 +82,50 @@ namespace Server
         {
             this._metrics = metrics;
 
-            OpenFiles();
-
             Task[] saveTasks = new Task[3];
+            bool backgroundWriteScheduled = false;
 
-            saveTasks[0] = SaveItems();
-            saveTasks[1] = SaveMobiles();
-            saveTasks[2] = SaveGuilds();
-
-            SaveTypeDatabases();
-
-            if (permitBackgroundWrite)
+            try
             {
-                //This option makes it finish the writing to disk in the background, continuing even after Save() returns.
-                Task.Factory.ContinueWhenAll(saveTasks, _ =>
-                    {
-                        CloseFiles();
+                OpenFiles();
 
-                        World.NotifyDiskWriteComplete();
-                    });
+                saveTasks[0] = SaveItems();
+                saveTasks[1] = SaveMobiles();
+                saveTasks[2] = SaveGuilds();
+
+                SaveTypeDatabases();
+
+                if (permitBackgroundWrite)
+                {
+                    //This option makes it finish the writing to disk in the background, continuing even after Save() returns.
+                    Task.Factory.ContinueWhenAll(saveTasks, _ =>
+                        {
+                            CloseFiles();
+
+                            World.NotifyDiskWriteComplete();
+                        });
+                    backgroundWriteScheduled = true;
+                }
+                else
+                {
+                    Task.WaitAll(saveTasks);    //Waits for the completion of all of the tasks(committing to disk)
+                }
             }
-            else
+            finally
             {
-                Task.WaitAll(saveTasks);    //Waits for the completion of all of the tasks(committing to disk)
-                CloseFiles();
+                if (!backgroundWriteScheduled)
+                {
+                    foreach (Task task in saveTasks)
+                    {
+                        if (task != null)
+                        {
+                            try { task.Wait(); }
+                            catch { } // Preserve the original producer or commit exception.
+                        }
+                    }
+
+                    CloseFiles();
+                }
             }
         }
 
@@ -133,11 +154,37 @@ namespace Server
             return commitTask;
         }
 
+        private Task RunProducer(BlockingCollection<QueuedMemoryWriter> writers, SequentialFileWriter data, SequentialFileWriter index, Action produce)
+        {
+            Task commitTask = StartCommitTask(writers, data, index);
+            bool producerCompleted = false;
+
+            try
+            {
+                produce();
+                producerCompleted = true;
+            }
+            finally
+            {
+                writers.CompleteAdding();
+
+                if (!producerCompleted)
+                {
+                    try { commitTask.Wait(); }
+                    catch { } // Do not replace the producer exception with a commit failure.
+                }
+            }
+
+            return commitTask;
+        }
+
         private Task SaveItems()
         {
-            //Start the blocking consumer; this runs in background.
-            Task commitTask = StartCommitTask(_itemThreadWriters, _itemData, _itemIndex);
+            return RunProducer(_itemThreadWriters, _itemData, _itemIndex, ProduceItems);
+        }
 
+        private void ProduceItems()
+        {
             IEnumerable<Item> items = World.Items.Values;
 
             //Start the producer.
@@ -170,17 +217,15 @@ namespace Server
 
                     _itemThreadWriters.Add(writer);
                 });
-
-            _itemThreadWriters.CompleteAdding();    //We only get here after the Parallel.ForEach completes.  Lets our task 
-
-            return commitTask;
         }
 
         private Task SaveMobiles()
         {
-            //Start the blocking consumer; this runs in background.
-            Task commitTask = StartCommitTask( _mobileThreadWriters, _mobileData, _mobileIndex );
+            return RunProducer(_mobileThreadWriters, _mobileData, _mobileIndex, ProduceMobiles);
+        }
 
+        private void ProduceMobiles()
+        {
             IEnumerable<Mobile> mobiles = World.Mobiles.Values;
 
             //Start the producer.
@@ -208,17 +253,15 @@ namespace Server
 
                     _mobileThreadWriters.Add(writer);
                 });
-
-            _mobileThreadWriters.CompleteAdding();    //We only get here after the Parallel.ForEach completes.  Lets our task tell the consumer that we're done
-
-            return commitTask;
         }
 
         private Task SaveGuilds()
         {
-            //Start the blocking consumer; this runs in background.
-            Task commitTask = StartCommitTask(_guildThreadWriters, _guildData, _guildIndex);
+            return RunProducer(_guildThreadWriters, _guildData, _guildIndex, ProduceGuilds);
+        }
 
+        private void ProduceGuilds()
+        {
             IEnumerable<BaseGuild> guilds = BaseGuild.List.Values;
 
             //Start the producer.
@@ -246,10 +289,6 @@ namespace Server
 
                     _guildThreadWriters.Add(writer);
                 });
-
-            _guildThreadWriters.CompleteAdding();    //We only get here after the Parallel.ForEach completes.  Lets our task 
-
-            return commitTask;
         }
 
         public override void ProcessDecay()
@@ -283,14 +322,23 @@ namespace Server
 
         private void CloseFiles()
         {
-            _itemData.Close();
-            _itemIndex.Close();
+            ExceptionDispatchInfo error = null;
 
-            _mobileData.Close();
-            _mobileIndex.Close();
+            foreach (SequentialFileWriter file in new SequentialFileWriter[] { _itemData, _itemIndex, _mobileData, _mobileIndex, _guildData, _guildIndex })
+            {
+                if (file != null)
+                {
+                    try { file.Close(); }
+                    catch (Exception ex)
+                    {
+                        if (error == null)
+                            error = ExceptionDispatchInfo.Capture(ex);
+                    }
+                }
+            }
 
-            _guildData.Close();
-            _guildIndex.Close();
+            if (error != null)
+                error.Throw();
         }
 
         private void WriteCount(SequentialFileWriter indexFile, int count)
