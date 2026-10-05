@@ -22,6 +22,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
+using System.Runtime.ExceptionServices;
 
 namespace Server {
     public sealed class SequentialFileWriter : Stream {
@@ -87,10 +88,15 @@ namespace Server {
         private void OnWrite( IAsyncResult asyncResult ) {
             FileQueue.Chunk chunk = asyncResult.AsyncState as FileQueue.Chunk;
 
-            fileStream.EndWrite( asyncResult );
+            try {
+                fileStream.EndWrite( asyncResult );
 
-            if ( metrics != null ) {
-                metrics.OnFileWritten( chunk.Size );
+                if ( metrics != null ) {
+                    metrics.OnFileWritten( chunk.Size );
+                }
+            } catch ( Exception ex ) {
+                chunk.Fail( ex );
+                return;
             }
 
             chunk.Commit();
@@ -106,17 +112,35 @@ namespace Server {
         }
 
         protected override void Dispose( bool disposing ) {
-            if ( fileStream != null ) {
-                Flush();
+            try {
+                if ( fileStream != null ) {
+                    ExceptionDispatchInfo error = null;
 
-                fileQueue.Dispose();
-                fileQueue = null;
+                    try { Flush(); }
+                    catch ( Exception ex ) { error = ExceptionDispatchInfo.Capture( ex ); }
 
-                fileStream.Close();
-                fileStream = null;
+                    try { fileQueue.Dispose(); }
+                    catch ( Exception ex ) {
+                        if ( error == null )
+                            error = ExceptionDispatchInfo.Capture( ex );
+                    } finally {
+                        fileQueue = null;
+                    }
+
+                    try { fileStream.Close(); }
+                    catch ( Exception ex ) {
+                        if ( error == null )
+                            error = ExceptionDispatchInfo.Capture( ex );
+                    } finally {
+                        fileStream = null;
+                    }
+
+                    if ( error != null )
+                        error.Throw();
+                }
+            } finally {
+                base.Dispose( disposing );
             }
-
-            base.Dispose( disposing );
         }
 
         public override bool CanRead {
