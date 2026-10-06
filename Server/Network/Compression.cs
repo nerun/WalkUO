@@ -101,6 +101,11 @@ namespace Server.Network {
                 throw new ArgumentException();
             }
 
+            if (output == null)
+            {
+                throw new ArgumentNullException("output");
+            }
+
             length = 0;
 
             if (count > DefiniteOverflow)
@@ -121,7 +126,7 @@ namespace Server.Network {
 
                     fixed (byte* pOutputBuffer = output)
                     {
-                        byte* pOutput = pOutputBuffer, pOutputEnd = pOutput + BufferSize;
+                        byte* pOutput = pOutputBuffer, pOutputEnd = pOutput + Math.Min(BufferSize, output.Length);
 
                         while (pInput < pInputEnd)
                         {
