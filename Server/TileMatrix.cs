@@ -138,6 +138,74 @@ namespace Server
 
         public TileMatrix( Map owner, int fileIndex, int mapID, int width, int height )
         {
+            m_FileIndex = fileIndex;
+            m_Width = width;
+            m_Height = height;
+            m_BlockWidth = width >> 3;
+            m_BlockHeight = height >> 3;
+
+            m_Owner = owner;
+
+            try
+            {
+                if ( fileIndex != 0x7F )
+                {
+                    string mapPath = Core.FindDataFile( "map{0}.mul", fileIndex );
+
+                    if ( File.Exists( mapPath ) )
+                    {
+                        m_Map = new FileStream( mapPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
+                    }
+                    else
+                    {
+                        mapPath = Core.FindDataFile( "map{0}LegacyMUL.uop", fileIndex );
+
+                        if ( File.Exists( mapPath ) )
+                        {
+                            m_Map = new FileStream( mapPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
+                            m_MapIndex = new UOPIndex( m_Map );
+                        }
+                    }
+
+                    string indexPath = Core.FindDataFile( "staidx{0}.mul", fileIndex );
+
+                    if ( File.Exists( indexPath ) )
+                    {
+                        m_Index = new FileStream( indexPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
+                        m_IndexReader = new BinaryReader( m_Index );
+                    }
+
+                    string staticsPath = Core.FindDataFile( "statics{0}.mul", fileIndex );
+
+                    if ( File.Exists( staticsPath ) )
+                        m_Statics = new FileStream( staticsPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
+                }
+
+                m_EmptyStaticBlock = new StaticTile[8][][];
+
+                for ( int i = 0; i < 8; ++i )
+                {
+                    m_EmptyStaticBlock[i] = new StaticTile[8][];
+
+                    for ( int j = 0; j < 8; ++j )
+                        m_EmptyStaticBlock[i][j] = new StaticTile[0];
+                }
+
+                m_InvalidLandBlock = new LandTile[196];
+
+                m_LandTiles = new LandTile[m_BlockWidth][][];
+                m_StaticTiles = new StaticTile[m_BlockWidth][][][][];
+                m_StaticPatches = new int[m_BlockWidth][];
+                m_LandPatches = new int[m_BlockWidth][];
+
+                m_Patch = new TileMatrixPatch( this, mapID );
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
+
             lock (m_Instances) {
                 for ( int i = 0; i < m_Instances.Count; ++i )
                 {
@@ -156,66 +224,6 @@ namespace Server
 
                 m_Instances.Add( this );
             }
-
-            m_FileIndex = fileIndex;
-            m_Width = width;
-            m_Height = height;
-            m_BlockWidth = width >> 3;
-            m_BlockHeight = height >> 3;
-
-            m_Owner = owner;
-
-            if ( fileIndex != 0x7F )
-            {
-                string mapPath = Core.FindDataFile( "map{0}.mul", fileIndex );
-
-                if ( File.Exists( mapPath ) )
-                {
-                    m_Map = new FileStream( mapPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
-                }
-                else
-                {
-                    mapPath = Core.FindDataFile( "map{0}LegacyMUL.uop", fileIndex );
-
-                    if ( File.Exists( mapPath ) )
-                    {
-                        m_Map = new FileStream( mapPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
-                        m_MapIndex = new UOPIndex( m_Map );
-                    }
-                }
-
-                string indexPath = Core.FindDataFile( "staidx{0}.mul", fileIndex );
-
-                if ( File.Exists( indexPath ) )
-                {
-                    m_Index = new FileStream( indexPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
-                    m_IndexReader = new BinaryReader( m_Index );
-                }
-
-                string staticsPath = Core.FindDataFile( "statics{0}.mul", fileIndex );
-
-                if ( File.Exists( staticsPath ) )
-                    m_Statics = new FileStream( staticsPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
-            }
-
-            m_EmptyStaticBlock = new StaticTile[8][][];
-
-            for ( int i = 0; i < 8; ++i )
-            {
-                m_EmptyStaticBlock[i] = new StaticTile[8][];
-
-                for ( int j = 0; j < 8; ++j )
-                    m_EmptyStaticBlock[i][j] = new StaticTile[0];
-            }
-
-            m_InvalidLandBlock = new LandTile[196];
-
-            m_LandTiles = new LandTile[m_BlockWidth][][];
-            m_StaticTiles = new StaticTile[m_BlockWidth][][][][];
-            m_StaticPatches = new int[m_BlockWidth][];
-            m_LandPatches = new int[m_BlockWidth][];
-
-            m_Patch = new TileMatrixPatch( this, mapID );
         }
 
         public StaticTile[][][] EmptyStaticBlock
