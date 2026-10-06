@@ -38,7 +38,7 @@ namespace Server
         {
             get
             {
-                while ( World.FindMobile( m_LastMobile = (m_LastMobile + 1) ) != null );
+                while ( World.FindMobile( m_LastMobile = (m_LastMobile == 0x3FFFFFFF ? 1 : m_LastMobile + 1) ) != null );
 
                 return m_LastMobile;
             }
@@ -48,7 +48,7 @@ namespace Server
         {
             get
             {
-                while ( World.FindItem( m_LastItem = (m_LastItem + 1) ) != null );
+                while ( World.FindItem( m_LastItem = (m_LastItem == 0x7FFFFFFF ? 0x40000000 : m_LastItem + 1) ) != null );
 
                 return m_LastItem;
             }

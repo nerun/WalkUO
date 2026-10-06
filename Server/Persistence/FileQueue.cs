@@ -22,6 +22,7 @@ using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
+using System.Runtime.ExceptionServices;
 
 using Server;
 using Server.Network;
@@ -46,7 +47,7 @@ namespace Server {
 
             public int Offset {
                 get {
-                    return 0;
+                    return offset;
                 }
             }
 
@@ -67,6 +68,10 @@ namespace Server {
 
             public void Commit() {
                 owner.Commit( this, this.slot );
+            }
+
+            internal void Fail( Exception error ) {
+                owner.Fail( this, this.slot, error );
             }
         }
 
@@ -96,6 +101,7 @@ namespace Server {
         private ManualResetEvent idle;
 
         private long position;
+        private volatile ExceptionDispatchInfo failure;
 
         public long Position {
             get {
@@ -134,7 +140,7 @@ namespace Server {
                     if ( active[slot] == null ) {
                         active[slot] = new Chunk( this, slot, page.buffer, 0, page.length );
 
-                        callback( active[slot] );
+                        Dispatch( slot );
 
                         return;
                     }
@@ -144,19 +150,73 @@ namespace Server {
             }
         }
 
+        private void ThrowIfFailed() {
+            ExceptionDispatchInfo error = failure;
+
+            if ( error != null )
+                error.Throw();
+        }
+
+        private void RecordFailure( Exception error ) {
+            if ( failure == null )
+                failure = ExceptionDispatchInfo.Capture( error );
+
+            while ( pending.Count > 0 ) {
+                bufferPool.ReleaseBuffer( pending.Dequeue().buffer );
+                --activeCount;
+            }
+
+            if ( buffered.buffer != null ) {
+                bufferPool.ReleaseBuffer( buffered.buffer );
+                buffered = new Page();
+            }
+        }
+
+        private void Dispatch( int slot ) {
+            Chunk chunk = active[slot];
+
+            try { callback( chunk ); }
+            catch ( Exception ex ) {
+                RecordFailure( ex );
+
+                if ( active[slot] == chunk )
+                    Commit( chunk, slot );
+            }
+        }
+
+        private void Fail( Chunk chunk, int slot, Exception error ) {
+            lock ( syncRoot ) {
+                RecordFailure( error );
+                Commit( chunk, slot );
+            }
+        }
+
         public void Dispose() {
             if ( idle != null ) {
-                idle.Close();
-                idle = null;
+                idle.WaitOne();
+
+                lock ( syncRoot ) {
+                    if ( buffered.buffer != null ) {
+                        bufferPool.ReleaseBuffer( buffered.buffer );
+                        buffered = new Page();
+                    }
+
+                    idle.Close();
+                    idle = null;
+                }
             }
         }
 
         public void Flush() {
-            if ( buffered.buffer != null ) {
-                Append( buffered );
+            lock ( syncRoot ) {
+                if ( idle == null )
+                    throw new ObjectDisposedException( "FileQueue" );
 
-                buffered.buffer = null;
-                buffered.length = 0;
+                if ( buffered.buffer != null ) {
+                    Page page = buffered;
+                    buffered = new Page();
+                    Append( page );
+                }
             }
 
             /*lock ( syncRoot ) {
@@ -178,6 +238,7 @@ namespace Server {
             }*/
 
             idle.WaitOne();
+            ThrowIfFailed();
         }
 
         private void Commit( Chunk chunk, int slot ) {
@@ -191,18 +252,16 @@ namespace Server {
                 }
 
                 bufferPool.ReleaseBuffer( chunk.Buffer );
+                active[slot] = null;
+                --activeCount;
 
                 if ( pending.Count > 0 ) {
                     Page page = pending.Dequeue();
 
                     active[slot] = new Chunk( this, slot, page.buffer, 0, page.length );
 
-                    callback( active[slot] );
-                } else {
-                    active[slot] = null;
+                    Dispatch( slot );
                 }
-
-                --activeCount;
 
                 if ( activeCount == 0 ) {
                     idle.Set();
@@ -221,28 +280,34 @@ namespace Server {
                 throw new ArgumentException();
             }
 
-            position += size;
+            lock ( syncRoot ) {
+                if ( idle == null )
+                    throw new ObjectDisposedException( "FileQueue" );
 
-            while ( size > 0 ) {
-                if ( buffered.buffer == null ) { // nothing yet buffered
-                    buffered.buffer = bufferPool.AcquireBuffer();
-                }
+                ThrowIfFailed();
+                position += size;
 
-                byte[] page = buffered.buffer; // buffer page
-                int pageSpace = page.Length - buffered.length; // available bytes in page
-                int byteCount = ( size > pageSpace ? pageSpace : size ); // how many bytes we can copy over
+                while ( size > 0 ) {
+                    if ( buffered.buffer == null ) { // nothing yet buffered
+                        buffered.buffer = bufferPool.AcquireBuffer();
+                    }
 
-                Buffer.BlockCopy( buffer, offset, page, buffered.length, byteCount );
+                    byte[] page = buffered.buffer; // buffer page
+                    int pageSpace = page.Length - buffered.length; // available bytes in page
+                    int byteCount = ( size > pageSpace ? pageSpace : size ); // how many bytes we can copy over
 
-                buffered.length += byteCount;
-                offset += byteCount;
-                size -= byteCount;
+                    Buffer.BlockCopy( buffer, offset, page, buffered.length, byteCount );
 
-                if ( buffered.length == page.Length ) { // page full
-                    Append( buffered );
+                    buffered.length += byteCount;
+                    offset += byteCount;
+                    size -= byteCount;
 
-                    buffered.buffer = null;
-                    buffered.length = 0;
+                    if ( buffered.length == page.Length ) { // page full
+                        Page full = buffered;
+                        buffered = new Page();
+                        Append( full );
+                        ThrowIfFailed();
+                    }
                 }
             }
         }

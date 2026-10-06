@@ -509,9 +509,9 @@ namespace Server
             int regPriority = reg.Priority;
 
             if ( thisPriority != regPriority )
-                return ( regPriority - thisPriority );
+                return regPriority.CompareTo( thisPriority );
 
-            return ( reg.ChildLevel - this.ChildLevel );
+            return reg.ChildLevel.CompareTo( this.ChildLevel );
         }
 
         public override string ToString()

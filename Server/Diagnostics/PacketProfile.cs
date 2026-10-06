@@ -30,13 +30,13 @@ namespace Server.Diagnostics {
 
         public long TotalLength {
             get {
-                return _totalLength;
+                return Interlocked.Read( ref _totalLength );
             }
         }
 
         public double AverageLength {
             get {
-                return ( double ) _totalLength / Math.Max( 1, this.Count );
+                return ( double ) TotalLength / Math.Max( 1, this.Count );
             }
         }
 
@@ -47,7 +47,7 @@ namespace Server.Diagnostics {
         public void Finish( int length ) {
             Finish();
 
-            _totalLength += length;
+            Interlocked.Add( ref _totalLength, length );
         }
 
         public override void WriteTo( TextWriter op ) {
@@ -62,7 +62,9 @@ namespace Server.Diagnostics {
 
         public static IEnumerable<PacketSendProfile> Profiles {
             get {
-                return _profiles.Values;
+                lock ( typeof( PacketSendProfile ) ) {
+                    return new List<PacketSendProfile>( _profiles.Values );
+                }
             }
         }
 
@@ -90,7 +92,7 @@ namespace Server.Diagnostics {
         public override void WriteTo( TextWriter op ) {
             base.WriteTo( op );
 
-            op.Write( "\t{0,12:N0}", _created );
+            op.Write( "\t{0,12:N0}", Interlocked.Read( ref _created ) );
         }
     }
 
@@ -99,7 +101,9 @@ namespace Server.Diagnostics {
 
         public static IEnumerable<PacketReceiveProfile> Profiles {
             get {
-                return _profiles.Values;
+                lock ( typeof( PacketReceiveProfile ) ) {
+                    return new List<PacketReceiveProfile>( _profiles.Values );
+                }
             }
         }
 

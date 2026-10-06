@@ -21,6 +21,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Server.Diagnostics {
     public abstract class BaseProfile {
@@ -44,7 +45,8 @@ namespace Server.Diagnostics {
         private TimeSpan _totalTime;
         private TimeSpan _peakTime;
 
-        private Stopwatch _stopwatch;
+        private readonly object _sync = new object();
+        private ThreadLocal<Stopwatch> _stopwatch;
 
         public string Name {
             get {
@@ -54,54 +56,66 @@ namespace Server.Diagnostics {
 
         public long Count {
             get {
-                return _count;
+                lock ( _sync ) {
+                    return _count;
+                }
             }
         }
 
         public TimeSpan AverageTime {
             get {
-                return TimeSpan.FromTicks( _totalTime.Ticks / Math.Max( 1, _count ) );
+                lock ( _sync ) {
+                    return TimeSpan.FromTicks( _totalTime.Ticks / Math.Max( 1, _count ) );
+                }
             }
         }
 
         public TimeSpan PeakTime {
             get {
-                return _peakTime;
+                lock ( _sync ) {
+                    return _peakTime;
+                }
             }
         }
 
         public TimeSpan TotalTime {
             get {
-                return _totalTime;
+                lock ( _sync ) {
+                    return _totalTime;
+                }
             }
         }
 
         protected BaseProfile( string name ) {
             _name = name;
 
-            _stopwatch = new Stopwatch();
+            _stopwatch = new ThreadLocal<Stopwatch>( () => new Stopwatch() );
         }
 
         public virtual void Start() {
-            if ( _stopwatch.IsRunning ) {
-                _stopwatch.Reset();
+            Stopwatch stopwatch = _stopwatch.Value;
+
+            if ( stopwatch.IsRunning ) {
+                stopwatch.Reset();
             }
 
-            _stopwatch.Start();
+            stopwatch.Start();
         }
 
         public virtual void Finish() {
-            TimeSpan elapsed = _stopwatch.Elapsed;
+            Stopwatch stopwatch = _stopwatch.Value;
+            TimeSpan elapsed = stopwatch.Elapsed;
+            stopwatch.Reset();
 
-            _totalTime += elapsed;
+            lock ( _sync ) {
+                _totalTime += elapsed;
 
-            if ( elapsed > _peakTime ) {
-                _peakTime = elapsed;
+                if ( elapsed > _peakTime ) {
+                    _peakTime = elapsed;
+                }
+
+                _count++;
             }
-
-            _count++;
-
-            _stopwatch.Reset();
         }
 
         public virtual void WriteTo( TextWriter op ) {

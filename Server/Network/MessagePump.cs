@@ -48,7 +48,7 @@ namespace Server.Network
             do {
                 for ( int i = 0; i < ipep.Length; i++ ) {
                     Listener l = new Listener( ipep[i] );
-                    if ( !success && l != null )
+                    if ( !success && l.IsBound )
                         success = true;
                     m_Listeners[i] = l;
                 }

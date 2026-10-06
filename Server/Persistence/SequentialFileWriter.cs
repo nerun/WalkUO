@@ -22,6 +22,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
+using System.Runtime.ExceptionServices;
 
 namespace Server {
     public sealed class SequentialFileWriter : Stream {
@@ -41,14 +42,30 @@ namespace Server {
 
             this.fileStream = FileOperations.OpenSequentialStream( path, FileMode.Create, FileAccess.Write, FileShare.None );
 
-            fileQueue = new FileQueue(
-                Math.Max( 1, FileOperations.Concurrency ),
-                FileCallback
-            );
+            try {
+                fileQueue = new FileQueue(
+#if MONO
+                    // Mono's asynchronous writes share the stream position and buffer.
+                    1,
+#else
+                    Math.Max( 1, FileOperations.Concurrency ),
+#endif
+                    FileCallback
+                );
+            } catch {
+                fileStream.Close();
+                throw;
+            }
+        }
+
+        private void CheckDisposed() {
+            if ( fileStream == null )
+                throw new ObjectDisposedException( "SequentialFileWriter" );
         }
 
         public override long Position {
             get {
+                CheckDisposed();
                 return fileQueue.Position;
             }
             set {
@@ -77,36 +94,61 @@ namespace Server {
         private void OnWrite( IAsyncResult asyncResult ) {
             FileQueue.Chunk chunk = asyncResult.AsyncState as FileQueue.Chunk;
 
-            fileStream.EndWrite( asyncResult );
+            try {
+                fileStream.EndWrite( asyncResult );
 
-            if ( metrics != null ) {
-                metrics.OnFileWritten( chunk.Size );
+                if ( metrics != null ) {
+                    metrics.OnFileWritten( chunk.Size );
+                }
+            } catch ( Exception ex ) {
+                chunk.Fail( ex );
+                return;
             }
 
             chunk.Commit();
         }
 
         public override void Write( byte[] buffer, int offset, int size ) {
+            CheckDisposed();
             fileQueue.Enqueue( buffer, offset, size );
         }
 
         public override void Flush() {
+            CheckDisposed();
             fileQueue.Flush();
             fileStream.Flush();
         }
 
         protected override void Dispose( bool disposing ) {
-            if ( fileStream != null ) {
-                Flush();
+            try {
+                if ( fileStream != null ) {
+                    ExceptionDispatchInfo error = null;
 
-                fileQueue.Dispose();
-                fileQueue = null;
+                    try { Flush(); }
+                    catch ( Exception ex ) { error = ExceptionDispatchInfo.Capture( ex ); }
 
-                fileStream.Close();
-                fileStream = null;
+                    try { fileQueue.Dispose(); }
+                    catch ( Exception ex ) {
+                        if ( error == null )
+                            error = ExceptionDispatchInfo.Capture( ex );
+                    } finally {
+                        fileQueue = null;
+                    }
+
+                    try { fileStream.Close(); }
+                    catch ( Exception ex ) {
+                        if ( error == null )
+                            error = ExceptionDispatchInfo.Capture( ex );
+                    } finally {
+                        fileStream = null;
+                    }
+
+                    if ( error != null )
+                        error.Throw();
+                }
+            } finally {
+                base.Dispose( disposing );
             }
-
-            base.Dispose( disposing );
         }
 
         public override bool CanRead {
@@ -118,7 +160,7 @@ namespace Server {
         }
 
         public override bool CanWrite {
-            get { return true; }
+            get { return fileStream != null; }
         }
 
         public override long Length {
@@ -134,7 +176,8 @@ namespace Server {
         }
 
         public override void SetLength( long value ) {
-            fileStream.SetLength( value );
+            CheckDisposed();
+            throw new NotSupportedException();
         }
     }
 }

@@ -385,6 +385,8 @@ namespace Server.Network
 
                 if ( desc == null )
                     desc = "";
+                else if ( desc.Length > 254 )
+                    desc = desc.Substring( 0, 254 );
 
                 m_Stream.Write( (byte)(desc.Length + 1) );
                 m_Stream.WriteAsciiNull( desc );
@@ -793,14 +795,14 @@ namespace Server.Network
                 m_Stream.Write( (byte) 0 );
             else
             {
-                int questionLength = question.Length;
+                int questionLength = Math.Min( 255, question.Length );
                 m_Stream.Write( (byte) questionLength );
                 m_Stream.WriteAsciiFixed( question, questionLength );
             }
 
             ItemListEntry[] entries = menu.Entries;
 
-            int entriesLength = (byte)entries.Length;
+            int entriesLength = Math.Min( 255, entries.Length );
 
             m_Stream.Write( (byte) entriesLength );
 
@@ -817,7 +819,7 @@ namespace Server.Network
                     m_Stream.Write( (byte) 0 );
                 else
                 {
-                    int nameLength = name.Length;
+                    int nameLength = Math.Min( 255, name.Length );
                     m_Stream.Write( (byte) nameLength );
                     m_Stream.WriteAsciiFixed( name, nameLength );
                 }
@@ -840,14 +842,14 @@ namespace Server.Network
                 m_Stream.Write( (byte) 0 );
             else
             {
-                int questionLength = question.Length;
+                int questionLength = Math.Min( 255, question.Length );
                 m_Stream.Write( (byte) questionLength );
                 m_Stream.WriteAsciiFixed( question, questionLength );
             }
 
             string[] answers = menu.Answers;
 
-            int answersLength = (byte)answers.Length;
+            int answersLength = Math.Min( 255, answers.Length );
 
             m_Stream.Write( (byte) answersLength );
 
@@ -861,7 +863,7 @@ namespace Server.Network
                     m_Stream.Write( (byte) 0 );
                 else
                 {
-                    int answerLength = answer.Length;
+                    int answerLength = Math.Min( 255, answer.Length );
                     m_Stream.Write( (byte) answerLength );
                     m_Stream.WriteAsciiFixed( answer, answerLength );
                 }
@@ -930,7 +932,7 @@ namespace Server.Network
         {
             ContextMenuEntry[] entries = menu.Entries;
 
-            int length = (byte) entries.Length;
+            int length = Math.Min( 255, entries.Length );
 
             this.EnsureCapacity( 12 + (length * 8) );
 
@@ -979,7 +981,7 @@ namespace Server.Network
         {
             ContextMenuEntry[] entries = menu.Entries;
 
-            int length = (byte) entries.Length;
+            int length = Math.Min( 255, entries.Length );
 
             this.EnsureCapacity( 12 + (length * 8) );
 

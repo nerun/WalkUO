@@ -1500,27 +1500,34 @@ namespace Server
 
             public void Worker()
             {
-                while (true) {
-                    MemoryStream mem;
+                try {
+                    while (true) {
+                        MemoryStream mem;
 
-                    lock (m_Owner.m_WriteQueue) {
-                        if (m_Owner.m_WriteQueue.Count == 0) {
-                            if( m_Owner.m_Closed )
-                                m_Owner.m_File.Close();
+                        lock (m_Owner.m_WriteQueue) {
+                            if (m_Owner.m_WriteQueue.Count == 0) {
+                                if( m_Owner.m_Closed )
+                                    m_Owner.m_File.Close();
 
-                            m_Owner.m_WorkerThread = null;
-                            break;
+                                m_Owner.m_WorkerThread = null;
+                                break;
+                            }
+
+                            mem = m_Owner.m_WriteQueue.Dequeue();
                         }
 
-                        mem = m_Owner.m_WriteQueue.Dequeue();
+                        if (mem.Length > 0)
+                            mem.WriteTo(m_Owner.m_File);
                     }
-
-                    if (mem.Length > 0)
-                        mem.WriteTo(m_Owner.m_File);
+                } catch {
+                    // Preserve the fatal worker error even if cleanup also fails.
+                    try { m_Owner.m_File.Close(); }
+                    catch { }
+                    throw;
+                } finally {
+                    if ( Interlocked.Decrement( ref AsyncWriter.m_ThreadCount ) <= 0 )
+                        World.NotifyDiskWriteComplete();
                 }
-
-                if ( Interlocked.Decrement( ref AsyncWriter.m_ThreadCount ) <= 0 )
-                    World.NotifyDiskWriteComplete();
             }
         }
 

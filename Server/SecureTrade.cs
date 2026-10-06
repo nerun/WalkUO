@@ -378,42 +378,29 @@ namespace Server
             int fromPlatSend = 0, fromGoldSend = 0, fromPlatRecv = 0, fromGoldRecv = 0;
             int toPlatSend = 0, toGoldSend = 0, toPlatRecv = 0, toGoldRecv = 0;
 
-            if (m_From.Plat > 0 & m_From.Mobile.Account.WithdrawPlat(m_From.Plat))
+            var fromCurrency = m_From.Plat + (m_From.Gold / Math.Max(1.0, AccountGold.CurrencyThreshold));
+            var toCurrency = m_To.Plat + (m_To.Gold / Math.Max(1.0, AccountGold.CurrencyThreshold));
+
+            if (fromCurrency > 0 && m_From.Mobile.Account.WithdrawCurrency(fromCurrency))
             {
                 fromPlatSend = m_From.Plat;
-
-                if (m_To.Mobile.Account.DepositPlat(m_From.Plat))
-                {
-                    toPlatRecv = fromPlatSend;
-                }
-            }
-
-            if (m_From.Gold > 0 & m_From.Mobile.Account.WithdrawGold(m_From.Gold))
-            {
                 fromGoldSend = m_From.Gold;
 
-                if (m_To.Mobile.Account.DepositGold(m_From.Gold))
+                if (m_To.Mobile.Account.DepositCurrency(fromCurrency))
                 {
+                    toPlatRecv = fromPlatSend;
                     toGoldRecv = fromGoldSend;
                 }
             }
 
-            if (m_To.Plat > 0 & m_To.Mobile.Account.WithdrawPlat(m_To.Plat))
+            if (toCurrency > 0 && m_To.Mobile.Account.WithdrawCurrency(toCurrency))
             {
                 toPlatSend = m_To.Plat;
-
-                if (m_From.Mobile.Account.DepositPlat(m_To.Plat))
-                {
-                    fromPlatRecv = toPlatSend;
-                }
-            }
-
-            if (m_To.Gold > 0 & m_To.Mobile.Account.WithdrawGold(m_To.Gold))
-            {
                 toGoldSend = m_To.Gold;
 
-                if (m_From.Mobile.Account.DepositGold(m_To.Gold))
+                if (m_From.Mobile.Account.DepositCurrency(toCurrency))
                 {
+                    fromPlatRecv = toPlatSend;
                     fromGoldRecv = toGoldSend;
                 }
             }
@@ -492,6 +479,11 @@ namespace Server
 
         public void Dispose()
         {
+            if (IsDisposed)
+            {
+                return;
+            }
+
             VirtualCheck.Delete();
             VirtualCheck = null;
 

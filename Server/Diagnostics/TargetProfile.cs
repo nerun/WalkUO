@@ -27,7 +27,9 @@ namespace Server.Diagnostics {
 
         public static IEnumerable<TargetProfile> Profiles {
             get {
-                return _profiles.Values;
+                lock ( _profiles ) {
+                    return new List<TargetProfile>( _profiles.Values );
+                }
             }
         }
 
@@ -36,13 +38,15 @@ namespace Server.Diagnostics {
                 return null;
             }
 
-            TargetProfile prof;
+            lock ( _profiles ) {
+                TargetProfile prof;
 
-            if ( !_profiles.TryGetValue( type, out prof ) ) {
-                _profiles.Add( type, prof = new TargetProfile( type ) );
+                if ( !_profiles.TryGetValue( type, out prof ) ) {
+                    _profiles.Add( type, prof = new TargetProfile( type ) );
+                }
+
+                return prof;
             }
-
-            return prof;
         }
 
         public TargetProfile( Type type )

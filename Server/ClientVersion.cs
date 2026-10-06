@@ -215,7 +215,12 @@ namespace Server
                     }
                     else
                     {
-                        m_Patch = Utility.ToInt32( fmt.Substring( br3+1, fmt.Length - br3 - 1 ) );
+                        int end = br3 + 1;
+
+                        while ( end < fmt.Length && !Char.IsWhiteSpace( fmt, end ) )
+                            end++;
+
+                        m_Patch = Utility.ToInt32( fmt.Substring( br3 + 1, end - br3 - 1 ) );
                     }
                 }
 
@@ -223,6 +228,8 @@ namespace Server
                     m_Type = ClientType.God;
                 else if ( fmt.IndexOf( "third dawn" ) >= 0 || fmt.IndexOf( "uo:td" ) >= 0 || fmt.IndexOf( "uotd" ) >= 0 || fmt.IndexOf( "uo3d" ) >= 0 || fmt.IndexOf( "uo:3d" ) >= 0 )
                     m_Type = ClientType.UOTD;
+                else if ( fmt.EndsWith( " sa" ) )
+                    m_Type = ClientType.SA;
                 else
                     m_Type = ClientType.Regular;
             }

@@ -32,6 +32,8 @@ namespace Server.Network
     {
         private Socket m_Listener;
 
+        internal bool IsBound { get { return m_Listener != null; } }
+
         private Queue<Socket> m_Accepted;
         private object m_AcceptedSyncRoot;
 
@@ -149,15 +151,23 @@ namespace Server.Network
 #if NewAsyncSockets
         private void Accept_Start()
         {
+            Socket listener = m_Listener;
+
+            if ( listener == null ) {
+                m_EventArgs.Dispose();
+                return;
+            }
+
             bool result = false;
 
             do {
                 try {
-                    result = !m_Listener.AcceptAsync( m_EventArgs );
+                    result = !listener.AcceptAsync( m_EventArgs );
                 } catch ( SocketException ex ) {
                     NetState.TraceException( ex );
                     break;
                 } catch ( ObjectDisposedException ) {
+                    m_EventArgs.Dispose();
                     break;
                 }
 
@@ -232,23 +242,25 @@ namespace Server.Network
 
         private void Enqueue( Socket socket ) {
             lock ( m_AcceptedSyncRoot ) {
-                m_Accepted.Enqueue( socket );
+                if ( m_Listener != null ) {
+                    m_Accepted.Enqueue( socket );
+                    Core.Set();
+                    return;
+                }
             }
 
-            Core.Set();
+            Release( socket );
         }
 
         private void Release( Socket socket ) {
-            try {
-                socket.Shutdown( SocketShutdown.Both );
-            } catch ( SocketException ex ) {
-                NetState.TraceException( ex );
-            }
+            if ( socket == null )
+                return;
 
             try {
                 socket.Close();
             } catch ( SocketException ex ) {
                 NetState.TraceException( ex );
+            } catch ( ObjectDisposedException ) {
             }
         }
 
@@ -278,6 +290,13 @@ namespace Server.Network
                 {
                     socket.Close();
                 }
+
+                lock (m_AcceptedSyncRoot)
+                {
+                    while (m_Accepted.Count > 0)
+                        Release(m_Accepted.Dequeue());
+                }
+
             }
         }
 
