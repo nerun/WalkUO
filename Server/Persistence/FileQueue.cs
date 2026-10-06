@@ -47,7 +47,7 @@ namespace Server {
 
             public int Offset {
                 get {
-                    return 0;
+                    return offset;
                 }
             }
 
