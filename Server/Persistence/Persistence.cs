@@ -20,6 +20,7 @@
 #region References
 using System;
 using System.IO;
+using System.Runtime.ExceptionServices;
 #endregion
 
 namespace Server
@@ -50,16 +51,31 @@ namespace Server
             using (var fs = file.Open(FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 var writer = new BinaryFileWriter(fs, true);
+                ExceptionDispatchInfo failure = null;
 
                 try
                 {
                     serializer(writer);
                 }
+                catch (Exception e)
+                {
+                    failure = ExceptionDispatchInfo.Capture(e);
+                }
                 finally
                 {
-                    writer.Flush();
-                    writer.Close();
+                    try
+                    {
+                        writer.Close();
+                    }
+                    catch (Exception e)
+                    {
+                        if (failure == null)
+                            failure = ExceptionDispatchInfo.Capture(e);
+                    }
                 }
+
+                if (failure != null)
+                    failure.Throw();
             }
         }
 
