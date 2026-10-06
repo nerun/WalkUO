@@ -492,6 +492,11 @@ namespace Server
 
         public void Dispose()
         {
+            if (IsDisposed)
+            {
+                return;
+            }
+
             VirtualCheck.Delete();
             VirtualCheck = null;
 
