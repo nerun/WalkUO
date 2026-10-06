@@ -58,8 +58,14 @@ namespace Server {
             }
         }
 
+        private void CheckDisposed() {
+            if ( fileStream == null )
+                throw new ObjectDisposedException( "SequentialFileWriter" );
+        }
+
         public override long Position {
             get {
+                CheckDisposed();
                 return fileQueue.Position;
             }
             set {
@@ -103,10 +109,12 @@ namespace Server {
         }
 
         public override void Write( byte[] buffer, int offset, int size ) {
+            CheckDisposed();
             fileQueue.Enqueue( buffer, offset, size );
         }
 
         public override void Flush() {
+            CheckDisposed();
             fileQueue.Flush();
             fileStream.Flush();
         }
@@ -152,7 +160,7 @@ namespace Server {
         }
 
         public override bool CanWrite {
-            get { return true; }
+            get { return fileStream != null; }
         }
 
         public override long Length {
