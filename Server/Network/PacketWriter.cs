@@ -195,6 +195,18 @@ namespace Server.Network
             m_Stream.Write( buffer, offset, size );
         }
 
+        private void PrepareString( int size )
+        {
+            long position = m_Stream.Position;
+            long length = m_Stream.Length;
+
+            if ( position + size > length )
+                m_Stream.SetLength( position + size );
+
+            if ( position < length )
+                Array.Clear( m_Stream.GetBuffer(), (int)position, (int)Math.Min( size, length - position ) );
+        }
+
         /// <summary>
         /// Writes a fixed-length ASCII-encoded string value to the underlying stream. To fit (size), the string content is either truncated or padded with null characters.
         /// </summary>
@@ -208,7 +220,7 @@ namespace Server.Network
 
             int length = value.Length;
 
-            m_Stream.SetLength( m_Stream.Length + size );
+            PrepareString( size );
 
             if ( length >= size )
                 m_Stream.Position += Encoding.ASCII.GetBytes( value, 0, size, m_Stream.GetBuffer(), (int)m_Stream.Position );
@@ -244,7 +256,7 @@ namespace Server.Network
 
             int length = value.Length;
 
-            m_Stream.SetLength( m_Stream.Length + length + 1 );
+            PrepareString( length + 1 );
 
             Encoding.ASCII.GetBytes( value, 0, length, m_Stream.GetBuffer(), (int)m_Stream.Position );
             m_Stream.Position += length + 1;
@@ -268,7 +280,7 @@ namespace Server.Network
 
             int length = value.Length;
 
-            m_Stream.SetLength( m_Stream.Length + ( ( length + 1 ) * 2 ) );
+            PrepareString( ( length + 1 ) * 2 );
 
             m_Stream.Position += Encoding.Unicode.GetBytes( value, 0, length, m_Stream.GetBuffer(), (int)m_Stream.Position );
             m_Stream.Position += 2;
@@ -297,7 +309,7 @@ namespace Server.Network
 
             int length = value.Length;
 
-            m_Stream.SetLength( m_Stream.Length + size );
+            PrepareString( size );
 
             if ( ( length * 2 ) >= size )
                 m_Stream.Position += Encoding.Unicode.GetBytes( value, 0, size / 2, m_Stream.GetBuffer(), (int)m_Stream.Position );
@@ -335,7 +347,7 @@ namespace Server.Network
 
             int length = value.Length;
 
-            m_Stream.SetLength( m_Stream.Length + ( ( length + 1 ) * 2 ) );
+            PrepareString( ( length + 1 ) * 2 );
 
             m_Stream.Position += Encoding.BigEndianUnicode.GetBytes( value, 0, length, m_Stream.GetBuffer(), (int)m_Stream.Position );
             m_Stream.Position += 2;
@@ -364,7 +376,7 @@ namespace Server.Network
 
             int length = value.Length;
 
-            m_Stream.SetLength( m_Stream.Length + size );
+            PrepareString( size );
 
             if ( ( length * 2 ) >= size )
                 m_Stream.Position += Encoding.BigEndianUnicode.GetBytes( value, 0, size / 2, m_Stream.GetBuffer(), (int)m_Stream.Position );
