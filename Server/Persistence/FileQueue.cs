@@ -209,6 +209,9 @@ namespace Server {
 
         public void Flush() {
             lock ( syncRoot ) {
+                if ( idle == null )
+                    throw new ObjectDisposedException( "FileQueue" );
+
                 if ( buffered.buffer != null ) {
                     Page page = buffered;
                     buffered = new Page();
@@ -278,6 +281,9 @@ namespace Server {
             }
 
             lock ( syncRoot ) {
+                if ( idle == null )
+                    throw new ObjectDisposedException( "FileQueue" );
+
                 ThrowIfFailed();
                 position += size;
 
