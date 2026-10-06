@@ -66,6 +66,7 @@ namespace Server {
             finished = false;
             consumers = null;
             cycle = 0;
+            Exception saveError = null;
 
             try {
                 try {
@@ -104,8 +105,15 @@ namespace Server {
                 }
 
                 Commit();
+            } catch ( Exception ex ) {
+                saveError = ex;
+                throw;
             } finally {
-                CloseFiles();
+                try { CloseFiles(); }
+                catch {
+                    if ( saveError == null )
+                        throw;
+                }
             }
         }
 
