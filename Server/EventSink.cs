@@ -1205,8 +1205,12 @@ namespace Server
             WorldLoad = null;
             WorldSave = null;
             SetAbility = null;
+            FastWalk = null;
+            CreateGuild = null;
+            ServerStarted = null;
             GuildGumpRequest = null;
             QuestGumpRequest = null;
+            ClientVersionReceived = null;
         }
     }
 }
