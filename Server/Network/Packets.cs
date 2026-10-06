@@ -385,6 +385,8 @@ namespace Server.Network
 
                 if ( desc == null )
                     desc = "";
+                else if ( desc.Length > 254 )
+                    desc = desc.Substring( 0, 254 );
 
                 m_Stream.Write( (byte)(desc.Length + 1) );
                 m_Stream.WriteAsciiNull( desc );
