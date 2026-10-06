@@ -63,6 +63,9 @@ namespace Server {
         public override void Save(SaveMetrics metrics, bool permitBackgroundWrite)
         {
             this.metrics = metrics;
+            finished = false;
+            consumers = null;
+            cycle = 0;
 
             try {
                 try {
