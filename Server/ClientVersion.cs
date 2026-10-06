@@ -215,7 +215,12 @@ namespace Server
                     }
                     else
                     {
-                        m_Patch = Utility.ToInt32( fmt.Substring( br3+1, fmt.Length - br3 - 1 ) );
+                        int end = br3 + 1;
+
+                        while ( end < fmt.Length && !Char.IsWhiteSpace( fmt, end ) )
+                            end++;
+
+                        m_Patch = Utility.ToInt32( fmt.Substring( br3 + 1, end - br3 - 1 ) );
                     }
                 }
 
