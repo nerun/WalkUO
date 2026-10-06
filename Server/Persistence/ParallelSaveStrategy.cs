@@ -44,7 +44,7 @@ namespace Server {
         }
 
         private int GetThreadCount() {
-            return processorCount - 1;
+            return Math.Max( 1, processorCount - 1 );
         }
 
         private SaveMetrics metrics;
