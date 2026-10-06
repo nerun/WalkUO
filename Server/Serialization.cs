@@ -1568,6 +1568,9 @@ namespace Server
         {
             lock (m_WriteQueue)
             {
+                if( m_Closed )
+                    return;
+
                 m_Closed = true;
                 Enqueue( m_Mem );
             }
