@@ -81,6 +81,7 @@ namespace Server
 
             Task[] saveTasks = new Task[3];
             bool backgroundWriteScheduled = false;
+            Exception saveError = null;
 
             try
             {
@@ -112,6 +113,11 @@ namespace Server
                     Task.WaitAll(saveTasks);    //Waits for the completion of all of the tasks(committing to disk)
                 }
             }
+            catch (Exception ex)
+            {
+                saveError = ex;
+                throw;
+            }
             finally
             {
                 if (!backgroundWriteScheduled)
@@ -125,7 +131,12 @@ namespace Server
                         }
                     }
 
-                    CloseFiles();
+                    try { CloseFiles(); }
+                    catch
+                    {
+                        if (saveError == null)
+                            throw;
+                    }
                 }
             }
         }
