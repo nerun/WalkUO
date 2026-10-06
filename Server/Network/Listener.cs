@@ -32,6 +32,8 @@ namespace Server.Network
     {
         private Socket m_Listener;
 
+        internal bool IsBound { get { return m_Listener != null; } }
+
         private Queue<Socket> m_Accepted;
         private object m_AcceptedSyncRoot;
 
