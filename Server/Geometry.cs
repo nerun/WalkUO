@@ -403,6 +403,8 @@ namespace Server
 
         public static Rectangle2D Parse( string value )
         {
+            value = value.Replace( ")+(", ", " );
+
             int start = value.IndexOf( '(' );
             int end = value.IndexOf( ',', start + 1 );
 
