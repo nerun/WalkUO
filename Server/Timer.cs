@@ -399,13 +399,17 @@ namespace Server
                         prof.Start();
                     }
 
-                    t.OnTick();
-                    t.m_Queued = false;
-                    ++index;
+                    try {
+                        t.OnTick();
+                    } finally {
+                        t.m_Queued = false;
 
-                    if ( prof != null ) {
-                        prof.Finish();
+                        if ( prof != null ) {
+                            prof.Finish();
+                        }
                     }
+
+                    ++index;
                 }
             }
         }
