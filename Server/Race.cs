@@ -193,6 +193,7 @@ namespace Server
             set
             {
                 m_Name = value;
+                m_RaceNames = null;
             }
         }
 
