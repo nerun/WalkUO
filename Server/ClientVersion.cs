@@ -228,6 +228,8 @@ namespace Server
                     m_Type = ClientType.God;
                 else if ( fmt.IndexOf( "third dawn" ) >= 0 || fmt.IndexOf( "uo:td" ) >= 0 || fmt.IndexOf( "uotd" ) >= 0 || fmt.IndexOf( "uo3d" ) >= 0 || fmt.IndexOf( "uo:3d" ) >= 0 )
                     m_Type = ClientType.UOTD;
+                else if ( fmt.EndsWith( " sa" ) )
+                    m_Type = ClientType.SA;
                 else
                     m_Type = ClientType.Regular;
             }
