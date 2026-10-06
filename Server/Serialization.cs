@@ -1428,7 +1428,7 @@ namespace Server
 
         public override bool End()
         {
-            return m_File.PeekChar() == -1;
+            return m_File.BaseStream.Position >= m_File.BaseStream.Length;
         }
     }
 
