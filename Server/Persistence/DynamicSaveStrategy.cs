@@ -73,9 +73,6 @@ namespace Server
         public DynamicSaveStrategy()
         {
             _decayBag = new ConcurrentBag<Item>();
-            _itemThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
-            _mobileThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
-            _guildThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
         }
 
         public override void Save(SaveMetrics metrics, bool permitBackgroundWrite)
@@ -87,6 +84,10 @@ namespace Server
 
             try
             {
+                _itemThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
+                _mobileThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
+                _guildThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
+
                 OpenFiles();
 
                 saveTasks[0] = SaveItems();
@@ -329,6 +330,19 @@ namespace Server
                 if (file != null)
                 {
                     try { file.Close(); }
+                    catch (Exception ex)
+                    {
+                        if (error == null)
+                            error = ExceptionDispatchInfo.Capture(ex);
+                    }
+                }
+            }
+
+            foreach (BlockingCollection<QueuedMemoryWriter> writers in new BlockingCollection<QueuedMemoryWriter>[] { _itemThreadWriters, _mobileThreadWriters, _guildThreadWriters })
+            {
+                if (writers != null)
+                {
+                    try { writers.Dispose(); }
                     catch (Exception ex)
                     {
                         if (error == null)
