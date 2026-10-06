@@ -133,6 +133,20 @@ namespace Server
 
                     bin.Write( debug );
                     bin.Write( Core.Version.ToString() );
+                    bin.Write( GetCompilerOptions( debug ) );
+
+                    string compiledPath = Path.GetFullPath( compiledFile );
+
+                    foreach( string reference in GetReferenceAssemblies() )
+                    {
+                        fileInfo = new FileInfo( reference );
+
+                        if( fileInfo.FullName == compiledPath )
+                            continue;
+
+                        bin.Write( fileInfo.FullName );
+                        bin.Write( fileInfo.LastWriteTimeUtc.Ticks );
+                    }
 
                     ms.Position = 0;
 
