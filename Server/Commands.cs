@@ -303,7 +303,7 @@ namespace Server.Commands
                 else
                 {
                     argString = "";
-                    command = text.ToLower();
+                    command = text.ToLowerInvariant();
                     args = new string[0];
                 }
 
