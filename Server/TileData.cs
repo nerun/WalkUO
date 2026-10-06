@@ -232,7 +232,17 @@ namespace Server
 
         private static string ReadNameString( BinaryReader bin )
         {
-            bin.Read( m_StringBuffer, 0, 20 );
+            int offset = 0;
+
+            while ( offset < 20 )
+            {
+                int read = bin.Read( m_StringBuffer, offset, 20 - offset );
+
+                if ( read == 0 )
+                    throw new EndOfStreamException();
+
+                offset += read;
+            }
 
             int count;
 
