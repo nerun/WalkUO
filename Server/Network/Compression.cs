@@ -233,7 +233,7 @@ namespace Server.Network {
     public sealed class Compressor32 : ICompressor {
         internal class SafeNativeMethods {
             [DllImport( "zlib32" )]
-            internal static extern string zlibVersion();
+            internal static extern IntPtr zlibVersion();
 
             [DllImport( "zlib32" )]
             internal static extern ZLibError compress(byte[] dest, ref int destLength, byte[] source, int sourceLength);
@@ -250,7 +250,7 @@ namespace Server.Network {
 
         public string Version {
             get {
-                return SafeNativeMethods.zlibVersion();
+                return Marshal.PtrToStringAnsi(SafeNativeMethods.zlibVersion());
             }
         }
 
@@ -270,7 +270,7 @@ namespace Server.Network {
     public sealed class Compressor64 : ICompressor {
         internal class SafeNativeMethods {
             [DllImport("zlib64")]
-            internal static extern string zlibVersion();
+            internal static extern IntPtr zlibVersion();
 
             [DllImport("zlib64")]
             internal static extern ZLibError compress(byte[] dest, ref int destLength, byte[] source, int sourceLength);
@@ -287,7 +287,7 @@ namespace Server.Network {
 
         public string Version {
             get {
-                return SafeNativeMethods.zlibVersion();
+                return Marshal.PtrToStringAnsi(SafeNativeMethods.zlibVersion());
             }
         }
 
@@ -307,7 +307,7 @@ namespace Server.Network {
     public sealed class CompressorUnix32 : ICompressor {
         internal class SafeNativeMethods {
             [DllImport("libz")]
-            internal static extern string zlibVersion();
+            internal static extern IntPtr zlibVersion();
 
             [DllImport("libz")]
             internal static extern ZLibError compress(byte[] dest, ref int destLength, byte[] source, int sourceLength);
@@ -324,7 +324,7 @@ namespace Server.Network {
 
         public string Version {
             get {
-                return SafeNativeMethods.zlibVersion();
+                return Marshal.PtrToStringAnsi(SafeNativeMethods.zlibVersion());
             }
         }
 
@@ -344,7 +344,7 @@ namespace Server.Network {
     public sealed class CompressorUnix64 : ICompressor {
         internal class SafeNativeMethods {
             [DllImport("libz")]
-            internal static extern string zlibVersion();
+            internal static extern IntPtr zlibVersion();
 
             [DllImport("libz")]
             internal static extern ZLibError compress(byte[] dest, ref ulong destLength, byte[] source, int sourceLength);
@@ -361,7 +361,7 @@ namespace Server.Network {
 
         public string Version {
             get {
-                return SafeNativeMethods.zlibVersion();
+                return Marshal.PtrToStringAnsi(SafeNativeMethods.zlibVersion());
             }
         }
 
