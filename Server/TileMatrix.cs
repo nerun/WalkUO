@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Server
 {
@@ -269,7 +270,10 @@ namespace Server
                     {
                         TileMatrix shared = m_FileShare[i];
 
-                        lock (shared) {
+                        if ( !Monitor.TryEnter( shared ) )
+                            continue;
+
+                        try {
                             if ( x >= 0 && x < shared.m_BlockWidth && y >= 0 && y < shared.m_BlockHeight )
                             {
                                 StaticTile[][][][] theirTiles = shared.m_StaticTiles[x];
@@ -285,6 +289,8 @@ namespace Server
                                         tiles = null;
                                 }
                             }
+                        } finally {
+                            Monitor.Exit( shared );
                         }
                     }
                 }
@@ -379,7 +385,10 @@ namespace Server
                     {
                         TileMatrix shared = m_FileShare[i];
 
-                        lock (shared) {
+                        if ( !Monitor.TryEnter( shared ) )
+                            continue;
+
+                        try {
                             if ( x >= 0 && x < shared.m_BlockWidth && y >= 0 && y < shared.m_BlockHeight )
                             {
                                 LandTile[][] theirTiles = shared.m_LandTiles[x];
@@ -395,6 +404,8 @@ namespace Server
                                         tiles = null;
                                 }
                             }
+                        } finally {
+                            Monitor.Exit( shared );
                         }
                     }
                 }
