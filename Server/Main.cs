@@ -866,6 +866,9 @@ namespace Server
 
         public override void Write( string str )
         {
+            if ( str == null )
+                return;
+
             WriteInternal(
                 writer => writer.Write( str ),
                 str.IndexOf( '\n' ) >= 0
