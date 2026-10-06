@@ -176,7 +176,8 @@ namespace Server {
         }
 
         public override void SetLength( long value ) {
-            fileStream.SetLength( value );
+            CheckDisposed();
+            throw new NotSupportedException();
         }
     }
 }
