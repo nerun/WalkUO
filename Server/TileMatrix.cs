@@ -742,9 +742,13 @@ namespace Server
             int nextTable = m_Reader.ReadInt32();
 
             List<UOPEntry> entries = new List<UOPEntry>();
+            HashSet<int> tables = new HashSet<int>();
 
             do
             {
+                if ( !tables.Add( nextTable ) )
+                    throw new InvalidDataException( "Cyclic UOP table chain." );
+
                 stream.Seek( nextTable, SeekOrigin.Begin );
                 int count = m_Reader.ReadInt32();
                 nextTable = m_Reader.ReadInt32();
