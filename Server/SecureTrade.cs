@@ -254,6 +254,16 @@ namespace Server
                         {
                             allowed = false;
                         }
+
+                        if (!m_Valid || m_From.IsDisposed || m_To.IsDisposed)
+                        {
+                            return;
+                        }
+
+                        if (!m_From.Accepted || !m_To.Accepted)
+                        {
+                            allowed = false;
+                        }
                     }
                 }
 
@@ -271,6 +281,16 @@ namespace Server
                         }
 
                         if (!item.AllowSecureTrade(m_To.Mobile, m_From.Mobile, m_From.Mobile, true))
+                        {
+                            allowed = false;
+                        }
+
+                        if (!m_Valid || m_From.IsDisposed || m_To.IsDisposed)
+                        {
+                            return;
+                        }
+
+                        if (!m_From.Accepted || !m_To.Accepted)
                         {
                             allowed = false;
                         }
