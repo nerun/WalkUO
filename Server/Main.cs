@@ -385,8 +385,11 @@ namespace Server
             {
                 long count = m_CycleIndex;
 
-                if ( count <= 0 )
+                if ( count <= 1 )
                     return 0.0;
+
+                --count;
+                int start = count < m_CyclesPerSecond.Length ? 1 : 0;
 
                 if ( count > m_CyclesPerSecond.Length )
                     count = m_CyclesPerSecond.Length;
@@ -395,7 +398,7 @@ namespace Server
 
                 for ( int i = 0; i < count; i++ )
                 {
-                    total += m_CyclesPerSecond[i];
+                    total += m_CyclesPerSecond[i + start];
                 }
 
                 return total / count;
