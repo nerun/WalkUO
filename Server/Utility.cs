@@ -693,11 +693,11 @@ namespace Server
 
         public static Direction GetDirection( IPoint2D from, IPoint2D to )
         {
-            int dx = to.X - from.X;
-            int dy = to.Y - from.Y;
+            long dx = (long)to.X - from.X;
+            long dy = (long)to.Y - from.Y;
 
-            int adx = Math.Abs( dx );
-            int ady = Math.Abs( dy );
+            long adx = Math.Abs( dx );
+            long ady = Math.Abs( dy );
 
             if ( adx >= ady * 3 )
             {
