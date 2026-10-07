@@ -791,6 +791,7 @@ namespace Server
         private StreamWriter _Writer;
         private readonly object _SyncRoot = new object();
         private bool _NewLine;
+        private bool _Disposed;
 
         public string FileName { get; private set; }
 
@@ -837,6 +838,9 @@ namespace Server
         {
             lock ( _SyncRoot )
             {
+                if ( _Disposed )
+                    throw new ObjectDisposedException( "FileLogger" );
+
                 StreamWriter writer = GetWriter();
 
                 if ( _NewLine )
@@ -884,6 +888,25 @@ namespace Server
         }
 
         public override Encoding Encoding { get { return Encoding.Default; } }
+
+        protected override void Dispose( bool disposing )
+        {
+            try
+            {
+                if ( disposing )
+                {
+                    lock ( _SyncRoot )
+                    {
+                        _Disposed = true;
+                        CloseWriter();
+                    }
+                }
+            }
+            finally
+            {
+                base.Dispose( disposing );
+            }
+        }
 
         public void CloseWriter()
         {
