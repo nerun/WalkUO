@@ -81,21 +81,19 @@ namespace Server
             str = Intern( str );
         }
 
-        private static Dictionary<IPAddress, IPAddress> _ipAddressTable;
+        private static readonly Dictionary<IPAddress, IPAddress> _ipAddressTable = new Dictionary<IPAddress, IPAddress>();
 
         public static IPAddress Intern( IPAddress ipAddress ) {
-            if ( _ipAddressTable == null ) {
-                _ipAddressTable = new Dictionary<IPAddress, IPAddress>();
+            lock ( _ipAddressTable ) {
+                IPAddress interned;
+
+                if ( !_ipAddressTable.TryGetValue( ipAddress, out interned ) ) {
+                    interned = ipAddress;
+                    _ipAddressTable[ipAddress] = interned;
+                }
+
+                return interned;
             }
-
-            IPAddress interned;
-
-            if ( !_ipAddressTable.TryGetValue( ipAddress, out interned ) ) {
-                interned = ipAddress;
-                _ipAddressTable[ipAddress] = interned;
-            }
-
-            return interned;
         }
 
         public static void Intern( ref IPAddress ipAddress ) {
