@@ -2280,24 +2280,24 @@ namespace Server
 
         public double GetDistanceToSqrt( Point3D p )
         {
-            int xDelta = m_Location.m_X - p.m_X;
-            int yDelta = m_Location.m_Y - p.m_Y;
+            double xDelta = (double)m_Location.m_X - p.m_X;
+            double yDelta = (double)m_Location.m_Y - p.m_Y;
 
             return Math.Sqrt( (xDelta * xDelta) + (yDelta * yDelta) );
         }
 
         public double GetDistanceToSqrt( Mobile m )
         {
-            int xDelta = m_Location.m_X - m.m_Location.m_X;
-            int yDelta = m_Location.m_Y - m.m_Location.m_Y;
+            double xDelta = (double)m_Location.m_X - m.m_Location.m_X;
+            double yDelta = (double)m_Location.m_Y - m.m_Location.m_Y;
 
             return Math.Sqrt( (xDelta * xDelta) + (yDelta * yDelta) );
         }
 
         public double GetDistanceToSqrt( IPoint2D p )
         {
-            int xDelta = m_Location.m_X - p.X;
-            int yDelta = m_Location.m_Y - p.Y;
+            double xDelta = (double)m_Location.m_X - p.X;
+            double yDelta = (double)m_Location.m_Y - p.Y;
 
             return Math.Sqrt( (xDelta * xDelta) + (yDelta * yDelta) );
         }
