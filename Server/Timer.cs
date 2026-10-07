@@ -187,6 +187,9 @@ namespace Server
 
                         string key = t.ToString();
 
+                        if ( key == null )
+                            key = "null";
+
                         List<Timer> list;
                         hash.TryGetValue( key, out list );
 
