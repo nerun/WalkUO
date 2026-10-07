@@ -366,9 +366,15 @@ namespace Server
 
             string[] split = val.Split( '.' );
 
+            if ( split.Length > 4 )
+            {
+                valid = false;
+                return false;
+            }
+
             for ( int i = 0; i < 4; ++i )
             {
-                int lowPart, highPart;
+                long lowPart, highPart;
 
                 if ( i >= split.Length )
                 {
@@ -460,6 +466,12 @@ namespace Server
                             else
                             {
                                 valid = false;    //high & lowpart would be 0 if it got to here.
+                            }
+
+                            if ( lowPart > int.MaxValue || highPart > int.MaxValue )
+                            {
+                                valid = false;
+                                break;
                             }
                         }
                     }
