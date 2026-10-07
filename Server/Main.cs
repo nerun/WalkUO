@@ -994,6 +994,17 @@ namespace Server
             WriteLine(String.Format(line, args));
         }
 
+        public override void Flush()
+        {
+            lock (_Streams)
+            {
+                foreach (var t in _Streams.ToArray())
+                {
+                    t.Flush();
+                }
+            }
+        }
+
         public override Encoding Encoding { get { return Encoding.Default; } }
     }
 }
