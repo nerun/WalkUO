@@ -971,7 +971,7 @@ namespace Server
         {
             lock (_Streams)
             {
-                foreach (var t in _Streams)
+                foreach (var t in _Streams.ToArray())
                 {
                     t.Write(ch);
                 }
@@ -982,7 +982,7 @@ namespace Server
         {
             lock (_Streams)
             {
-                foreach (var t in _Streams)
+                foreach (var t in _Streams.ToArray())
                 {
                     t.WriteLine(line);
                 }
