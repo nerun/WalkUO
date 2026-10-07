@@ -838,7 +838,12 @@ namespace Server
                 return min;
             }
 
-            return min + RandomImpl.Next((max - min) + 1);
+            long count = (long)max - min + 1;
+
+            if ( count > int.MaxValue )
+                return (int)(min + (long)(RandomImpl.NextDouble() * count));
+
+            return min + RandomImpl.Next((int)count);
         }
 
         public static int Random( int from, int count )
@@ -848,6 +853,9 @@ namespace Server
             } else if ( count > 0 ) {
                 return from + RandomImpl.Next(count);
             } else {
+                if ( count == int.MinValue )
+                    return from - (int)(RandomImpl.NextDouble() * 2147483648.0);
+
                 return from - RandomImpl.Next(-count);
             }
         }
