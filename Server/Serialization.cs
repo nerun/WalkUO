@@ -1512,21 +1512,25 @@ namespace Server
         {
             lock (m_WriteQueue)
             {
-                m_WriteQueue.Enqueue( mem );
-
                 if( m_WorkerThread == null )
                 {
-                    m_WorkerThread = new Thread( new ThreadStart( new WorkerThread( this ).Worker ) );
-                    m_WorkerThread.Priority = ThreadPriority.BelowNormal;
-                    Interlocked.Increment( ref AsyncWriter.m_ThreadCount );
+                    try {
+                        m_WorkerThread = new Thread( new ThreadStart( new WorkerThread( this ).Worker ) );
+                        m_WorkerThread.Priority = ThreadPriority.BelowNormal;
+                        Interlocked.Increment( ref AsyncWriter.m_ThreadCount );
 
-                    try { m_WorkerThread.Start(); }
-                    catch {
+                        try { m_WorkerThread.Start(); }
+                        catch {
+                            Interlocked.Decrement( ref AsyncWriter.m_ThreadCount );
+                            throw;
+                        }
+                    } catch {
                         m_WorkerThread = null;
-                        Interlocked.Decrement( ref AsyncWriter.m_ThreadCount );
                         throw;
                     }
                 }
+
+                m_WriteQueue.Enqueue( mem );
             }
         }
 
@@ -1632,7 +1636,11 @@ namespace Server
                     return;
 
                 m_Closed = true;
-                Enqueue( m_Mem );
+                try { Enqueue( m_Mem ); }
+                catch {
+                    m_Closed = false;
+                    throw;
+                }
             }
         }
 
