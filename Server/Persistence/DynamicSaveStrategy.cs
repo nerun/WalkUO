@@ -174,7 +174,13 @@ namespace Server
                         break;
                     }
 
-                    writer.CommitTo(data, index);
+                    try { writer.CommitTo(data, index); }
+                    catch
+                    {
+                        try { writer.Close(); }
+                        catch { } // Preserve the original commit error.
+                        throw;
+                    }
                 }
             });
 
@@ -240,9 +246,17 @@ namespace Server
                 },
                 (writer) =>
                 {
-                    writer.Flush();
-
-                    _itemThreadWriters.Add(writer);
+                    try
+                    {
+                        writer.Flush();
+                        _itemThreadWriters.Add(writer);
+                    }
+                    catch
+                    {
+                        try { writer.Close(); }
+                        catch { } // Preserve the producer error.
+                        throw;
+                    }
                 });
         }
 
@@ -276,9 +290,17 @@ namespace Server
                 },
                 (writer) =>
                 {
-                    writer.Flush();
-
-                    _mobileThreadWriters.Add(writer);
+                    try
+                    {
+                        writer.Flush();
+                        _mobileThreadWriters.Add(writer);
+                    }
+                    catch
+                    {
+                        try { writer.Close(); }
+                        catch { } // Preserve the producer error.
+                        throw;
+                    }
                 });
         }
 
@@ -312,9 +334,17 @@ namespace Server
                 },
                 (writer) =>
                 {
-                    writer.Flush();
-
-                    _guildThreadWriters.Add(writer);
+                    try
+                    {
+                        writer.Flush();
+                        _guildThreadWriters.Add(writer);
+                    }
+                    catch
+                    {
+                        try { writer.Close(); }
+                        catch { } // Preserve the producer error.
+                        throw;
+                    }
                 });
         }
 
@@ -368,6 +398,25 @@ namespace Server
             {
                 if (writers != null)
                 {
+                    QueuedMemoryWriter writer;
+                    try
+                    {
+                        while (writers.TryTake(out writer))
+                        {
+                            try { writer.Close(); }
+                            catch (Exception ex)
+                            {
+                                if (error == null)
+                                    error = ExceptionDispatchInfo.Capture(ex);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (error == null)
+                            error = ExceptionDispatchInfo.Capture(ex);
+                    }
+
                     try { writers.Dispose(); }
                     catch (Exception ex)
                     {
