@@ -665,6 +665,7 @@ namespace Server
 
         public override void WriteMobileList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -689,6 +690,7 @@ namespace Server
 
         public override void WriteItemList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -713,6 +715,7 @@ namespace Server
 
         public override void WriteGuildList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -737,6 +740,7 @@ namespace Server
 
         public override void Write( List<Item> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -761,6 +765,7 @@ namespace Server
 
         public override void WriteItemList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -785,6 +790,7 @@ namespace Server
 
         public override void Write( HashSet<Item> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( item => item.Deleted );
@@ -805,6 +811,7 @@ namespace Server
 
         public override void WriteItemSet<T>( HashSet<T> set, bool tidy ) 
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( item => item.Deleted );
@@ -825,6 +832,7 @@ namespace Server
 
         public override void Write( List<Mobile> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -849,6 +857,7 @@ namespace Server
 
         public override void WriteMobileList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -873,6 +882,7 @@ namespace Server
 
         public override void Write( HashSet<Mobile> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( mobile => mobile.Deleted );
@@ -893,6 +903,7 @@ namespace Server
 
         public override void WriteMobileSet<T>( HashSet<T> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( mob => mob.Deleted );
@@ -913,6 +924,7 @@ namespace Server
 
         public override void Write( List<BaseGuild> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -937,6 +949,7 @@ namespace Server
 
         public override void WriteGuildList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -961,6 +974,7 @@ namespace Server
 
         public override void Write( HashSet<BaseGuild> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( guild => guild.Disbanded );
@@ -981,6 +995,7 @@ namespace Server
 
         public override void WriteGuildSet<T>( HashSet<T> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( guild => guild.Disbanded );
@@ -1886,6 +1901,7 @@ namespace Server
 
         public override void WriteMobileList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -1910,6 +1926,7 @@ namespace Server
 
         public override void WriteItemList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -1934,6 +1951,7 @@ namespace Server
 
         public override void WriteGuildList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -1958,6 +1976,7 @@ namespace Server
 
         public override void Write( List<Item> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -1981,6 +2000,7 @@ namespace Server
         }
         public override void WriteItemList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -2005,6 +2025,7 @@ namespace Server
 
         public override void Write( HashSet<Item> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( item => item.Deleted );
@@ -2025,6 +2046,7 @@ namespace Server
 
         public override void WriteItemSet<T>( HashSet<T> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( item => item.Deleted );
@@ -2045,6 +2067,7 @@ namespace Server
 
         public override void Write( List<Mobile> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -2069,6 +2092,7 @@ namespace Server
 
         public override void WriteMobileList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -2093,6 +2117,7 @@ namespace Server
 
         public override void Write( HashSet<Mobile> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( mobile => mobile.Deleted );
@@ -2113,6 +2138,7 @@ namespace Server
 
         public override void WriteMobileSet<T>( HashSet<T> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( mob => mob.Deleted );
@@ -2133,6 +2159,7 @@ namespace Server
 
         public override void Write( List<BaseGuild> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -2157,6 +2184,7 @@ namespace Server
 
         public override void WriteGuildList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -2181,6 +2209,7 @@ namespace Server
 
         public override void Write( HashSet<BaseGuild> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( guild => guild.Disbanded );
@@ -2201,6 +2230,7 @@ namespace Server
 
         public override void WriteGuildSet<T>( HashSet<T> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( guild => guild.Disbanded );
