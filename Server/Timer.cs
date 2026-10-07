@@ -401,18 +401,22 @@ namespace Server
                 while ( index < m_BreakCount && m_Queue.Count != 0 )
                 {
                     Timer t = m_Queue.Dequeue();
-                    TimerProfile prof = t.GetProfile();
-
-                    if ( prof != null ) {
-                        prof.Start();
-                    }
+                    TimerProfile prof = null;
+                    bool profileStarted = false;
 
                     try {
+                        prof = t.GetProfile();
+
+                        if ( prof != null ) {
+                            prof.Start();
+                            profileStarted = true;
+                        }
+
                         t.OnTick();
                     } finally {
                         t.m_Queued = false;
 
-                        if ( prof != null ) {
+                        if ( profileStarted ) {
                             prof.Finish();
                         }
                     }
