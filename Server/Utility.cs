@@ -660,34 +660,34 @@ namespace Server
         #region In[...]Range
         public static bool InRange( Point3D p1, Point3D p2, int range )
         {
-            return ( p1.m_X >= (p2.m_X - range) )
-                && ( p1.m_X <= (p2.m_X + range) )
-                && ( p1.m_Y >= (p2.m_Y - range) )
-                && ( p1.m_Y <= (p2.m_Y + range) );
+            return ( p1.m_X >= ((long)p2.m_X - range) )
+                && ( p1.m_X <= ((long)p2.m_X + range) )
+                && ( p1.m_Y >= ((long)p2.m_Y - range) )
+                && ( p1.m_Y <= ((long)p2.m_Y + range) );
         }
 
         public static bool InUpdateRange( Point3D p1, Point3D p2 )
         {
-            return ( p1.m_X >= (p2.m_X - 18) )
-                && ( p1.m_X <= (p2.m_X + 18) )
-                && ( p1.m_Y >= (p2.m_Y - 18) )
-                && ( p1.m_Y <= (p2.m_Y + 18) );
+            return ( p1.m_X >= ((long)p2.m_X - 18) )
+                && ( p1.m_X <= ((long)p2.m_X + 18) )
+                && ( p1.m_Y >= ((long)p2.m_Y - 18) )
+                && ( p1.m_Y <= ((long)p2.m_Y + 18) );
         }
 
         public static bool InUpdateRange( Point2D p1, Point2D p2 )
         {
-            return ( p1.m_X >= (p2.m_X - 18) )
-                && ( p1.m_X <= (p2.m_X + 18) )
-                && ( p1.m_Y >= (p2.m_Y - 18) )
-                && ( p1.m_Y <= (p2.m_Y + 18) );
+            return ( p1.m_X >= ((long)p2.m_X - 18) )
+                && ( p1.m_X <= ((long)p2.m_X + 18) )
+                && ( p1.m_Y >= ((long)p2.m_Y - 18) )
+                && ( p1.m_Y <= ((long)p2.m_Y + 18) );
         }
 
         public static bool InUpdateRange( IPoint2D p1, IPoint2D p2 )
         {
-            return ( p1.X >= (p2.X - 18) )
-                && ( p1.X <= (p2.X + 18) )
-                && ( p1.Y >= (p2.Y - 18) )
-                && ( p1.Y <= (p2.Y + 18) );
+            return ( p1.X >= ((long)p2.X - 18) )
+                && ( p1.X <= ((long)p2.X + 18) )
+                && ( p1.Y >= ((long)p2.Y - 18) )
+                && ( p1.Y <= ((long)p2.Y + 18) );
         }
         #endregion
 
@@ -1195,10 +1195,10 @@ namespace Server
 
         public static bool RangeCheck( IPoint2D p1, IPoint2D p2, int range )
         {
-            return ( p1.X >= (p2.X - range) )
-                && ( p1.X <= (p2.X + range) )
-                && ( p1.Y >= (p2.Y - range) )
-                && ( p1.Y <= (p2.Y + range) );
+            return ( p1.X >= ((long)p2.X - range) )
+                && ( p1.X <= ((long)p2.X + range) )
+                && ( p1.Y >= ((long)p2.Y - range) )
+                && ( p1.Y <= ((long)p2.Y + range) );
         }
 
         public static void FormatBuffer( TextWriter output, Stream input, int length )
