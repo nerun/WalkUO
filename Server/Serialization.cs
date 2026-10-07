@@ -999,11 +999,13 @@ namespace Server
 
         public override int PeekInt()
         {
-            var peek = m_File.ReadInt32();
+            long position = m_File.BaseStream.Position;
 
-            m_File.BaseStream.Seek( -4, SeekOrigin.Current );
-
-            return peek;
+            try {
+                return m_File.ReadInt32();
+            } finally {
+                m_File.BaseStream.Seek( position, SeekOrigin.Begin );
+            }
         }
 
         public override string ReadString()
