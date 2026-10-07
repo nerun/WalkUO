@@ -426,8 +426,15 @@ namespace Server
                 Dictionary<string, List<CompilerError>> errors = new Dictionary<string, List<CompilerError>>( results.Errors.Count, StringComparer.OrdinalIgnoreCase );
                 Dictionary<string, List<CompilerError>> warnings = new Dictionary<string, List<CompilerError>>( results.Errors.Count, StringComparer.OrdinalIgnoreCase );
 
+                int errorCount = 0, warningCount = 0;
+
                 foreach( CompilerError e in results.Errors )
                 {
+                    if( e.IsWarning )
+                        ++warningCount;
+                    else
+                        ++errorCount;
+
                     string file = e.FileName;
 
                     // Ridiculous. FileName is null if the warning/error is internally generated in csc.
@@ -447,10 +454,10 @@ namespace Server
                     list.Add( e );
                 }
 
-                if( errors.Count > 0 )
-                    Console.WriteLine( "failed ({0} errors, {1} warnings)", errors.Count, warnings.Count );
+                if( errorCount > 0 )
+                    Console.WriteLine( "failed ({0} errors, {1} warnings)", errorCount, warningCount );
                 else
-                    Console.WriteLine( "done ({0} errors, {1} warnings)", errors.Count, warnings.Count );
+                    Console.WriteLine( "done ({0} errors, {1} warnings)", errorCount, warningCount );
 
                 string scriptRoot = Path.GetFullPath( Path.Combine( Core.BaseDirectory, "Scripts" + Path.DirectorySeparatorChar ) );
                 Uri scriptRootUri = new Uri( scriptRoot );
