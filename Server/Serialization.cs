@@ -1462,9 +1462,9 @@ namespace Server
             m_WriteQueue = new Queue<MemoryStream>();
             BufferSize = buffSize;
 
-            m_File = new FileStream( filename, FileMode.Create, FileAccess.Write, FileShare.None );
             m_Mem = new MemoryStream( BufferSize + 1024 );
             m_Bin = new BinaryWriter( m_Mem, Utility.UTF8WithEncoding );
+            m_File = new FileStream( filename, FileMode.Create, FileAccess.Write, FileShare.None );
         }
 
         private void Enqueue( MemoryStream mem )
