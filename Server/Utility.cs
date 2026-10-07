@@ -190,7 +190,7 @@ namespace Server
                 return false;
 
             bool cidrBits = false;
-            int cidrLength = 0;
+            long cidrLength = 0;
 
             for ( int i = 0; i < 4; i++ )
             {
@@ -268,6 +268,9 @@ namespace Server
                     {
                         return false;
                     }
+
+                    if ( part > byte.MaxValue || cidrLength > int.MaxValue )
+                        return false;
                 }
 
                 bytes[i] = (byte)part;
@@ -275,7 +278,7 @@ namespace Server
 
             uint cidrPrefix = OrderedAddressValue( bytes );
 
-            return IPMatchCIDR( cidrPrefix, ip, cidrLength );
+            return IPMatchCIDR( cidrPrefix, ip, (int)cidrLength );
         }
 
         public static bool IPMatchCIDR( IPAddress cidrPrefix, IPAddress ip, int cidrLength )
