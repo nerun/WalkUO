@@ -525,6 +525,9 @@ namespace Server
             for( int i = 2; File.Exists( path ) && i <= 1000; ++i )
                 path = Path.Combine( Core.BaseDirectory, String.Format( "Scripts/Output/{0}.{1}.dll", name, i ) );
 
+            if( File.Exists( path ) )
+                throw new IOException( "No unused script assembly path is available." );
+
             return path;
         }
 
