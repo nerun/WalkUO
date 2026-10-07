@@ -1065,6 +1065,9 @@ namespace Server
             do
             {
                 b = m_File.ReadByte();
+                if( shift == 28 && (b & 0xF0) != 0 )
+                    throw new FormatException( "Invalid encoded integer." );
+
                 v |= (b & 0x7F) << shift;
                 shift += 7;
             } while( b >= 0x80 );
