@@ -251,8 +251,6 @@ namespace Server
 #endif
                 CompilerResults results = provider.CompileAssemblyFromFile( parms, files );
 
-                m_AdditionalReferences.Add( path );
-
                 Display( results );
 
 #if !MONO
@@ -293,6 +291,7 @@ namespace Server
                 }
 
                 assembly = results.CompiledAssembly;
+                m_AdditionalReferences.Add( path );
                 return true;
             }
         }
@@ -386,7 +385,6 @@ namespace Server
                     parms.WarningLevel = 4;
 
                 CompilerResults results = provider.CompileAssemblyFromFile( parms, files );
-                m_AdditionalReferences.Add( path );
 
                 Display( results );
 
@@ -416,6 +414,7 @@ namespace Server
                 }
 
                 assembly = results.CompiledAssembly;
+                m_AdditionalReferences.Add( path );
                 return true;
             }
         }
