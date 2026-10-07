@@ -1531,6 +1531,12 @@ namespace Server
             }
         }
 
+        private void EnsureOpen()
+        {
+            if( m_Closed )
+                throw new ObjectDisposedException( "AsyncWriter" );
+        }
+
         private void OnWrite()
         {
             long curlen = m_Mem.Length;
@@ -1553,6 +1559,7 @@ namespace Server
             }
             set
             {
+                EnsureOpen();
                 BinaryWriter bin = new BinaryWriter( value, Utility.UTF8WithEncoding );
                 long length = value.Length;
                 value.Seek( 0, SeekOrigin.End );
@@ -1598,12 +1605,14 @@ namespace Server
 
         public override void Write( IPAddress value )
         {
+            EnsureOpen();
             m_Bin.Write( Utility.GetLongAddressValue( value ) );
             OnWrite();
         }
 
         public override void Write( string value )
         {
+            EnsureOpen();
             if( PrefixStrings )
             {
                 if( value == null )
@@ -1638,12 +1647,14 @@ namespace Server
 
         public override void Write( DateTime value )
         {
+            EnsureOpen();
             m_Bin.Write( value.Ticks );
             OnWrite();
         }
 
         public override void Write( DateTimeOffset value )
         {
+            EnsureOpen();
             m_Bin.Write( value.Ticks );
             m_Bin.Write( value.Offset.Ticks );
             OnWrite();
@@ -1651,30 +1662,35 @@ namespace Server
 
         public override void Write( TimeSpan value )
         {
+            EnsureOpen();
             m_Bin.Write( value.Ticks );
             OnWrite();
         }
 
         public override void Write( decimal value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( long value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( ulong value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void WriteEncodedInt( int value )
         {
+            EnsureOpen();
             uint v = (uint)value;
 
             while( v >= 0x80 )
@@ -1689,60 +1705,70 @@ namespace Server
 
         public override void Write( int value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( uint value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( short value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( ushort value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( double value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( float value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( char value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( byte value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( sbyte value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( bool value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
