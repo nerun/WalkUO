@@ -232,9 +232,8 @@ namespace Server
         {
             if( m_Index > 0 )
             {
-                m_Position += m_Index;
-
                 m_File.Write( m_Buffer, 0, m_Index );
+                m_Position += m_Index;
                 m_Index = 0;
             }
         }
