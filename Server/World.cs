@@ -483,6 +483,7 @@ namespace Server {
                         int length = idxReader.ReadInt32();
 
                         createEventArgs.Id = id;
+                        createEventArgs.Guild = null;
                         EventSink.InvokeCreateGuild(createEventArgs);
                         BaseGuild guild = createEventArgs.Guild;
                         if ( guild != null )
