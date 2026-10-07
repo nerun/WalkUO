@@ -146,7 +146,7 @@ namespace Server
 
         public static bool IPMatchCIDR( string cidr, IPAddress ip )
         {
-            if ( ip == null || ip.AddressFamily == AddressFamily.InterNetworkV6 )
+            if ( cidr == null || ip == null || ip.AddressFamily == AddressFamily.InterNetworkV6 )
                 return false;    //Just worry about IPv4 for now
 
 
@@ -185,6 +185,10 @@ namespace Server
 
             byte[] bytes = new byte[4];
             string[] split = cidr.Split( '.' );
+
+            if ( split.Length != 4 )
+                return false;
+
             bool cidrBits = false;
             int cidrLength = 0;
 
