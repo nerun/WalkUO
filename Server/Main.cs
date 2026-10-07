@@ -875,7 +875,7 @@ namespace Server
 
             WriteInternal(
                 writer => writer.Write( str ),
-                str.IndexOf( '\n' ) >= 0
+                str.Length > 0 && str[str.Length - 1] == '\n'
             );
         }
 
