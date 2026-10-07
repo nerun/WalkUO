@@ -891,9 +891,24 @@ namespace Server
             {
                 if ( _Writer != null )
                 {
-                    _Writer.Flush();
-                    _Writer.Close();
+                    StreamWriter writer = _Writer;
                     _Writer = null;
+                    bool flushed = false;
+
+                    try
+                    {
+                        writer.Flush();
+                        flushed = true;
+                    }
+                    finally
+                    {
+                        try { writer.Close(); }
+                        catch
+                        {
+                            if ( flushed )
+                                throw;
+                        }
+                    }
                 }
             }
         }
