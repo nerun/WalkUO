@@ -196,6 +196,7 @@ namespace Server
     public class BinaryFileWriter : GenericWriter
     {
         private bool PrefixStrings;
+        private bool m_Closed;
         private Stream m_File;
 
         protected virtual int BufferSize
@@ -261,6 +262,7 @@ namespace Server
 
         public override void Close()
         {
+            m_Closed = true;
             try {
                 if( m_Index > 0 )
                     Flush();
@@ -269,8 +271,15 @@ namespace Server
             }
         }
 
+        private void EnsureOpen()
+        {
+            if( m_Closed )
+                throw new ObjectDisposedException( "BinaryFileWriter" );
+        }
+
         public override void WriteEncodedInt( int value )
         {
+            EnsureOpen();
             uint v = (uint)value;
 
             while( v >= 0x80 )
@@ -342,6 +351,7 @@ namespace Server
 
         public override void Write( string value )
         {
+            EnsureOpen();
             if( PrefixStrings )
             {
                 if( value == null )
@@ -411,6 +421,7 @@ namespace Server
 
         public override void Write( long value )
         {
+            EnsureOpen();
             if( (m_Index + 8) > m_Buffer.Length )
                 Flush();
 
@@ -427,6 +438,7 @@ namespace Server
 
         public override void Write( ulong value )
         {
+            EnsureOpen();
             if( (m_Index + 8) > m_Buffer.Length )
                 Flush();
 
@@ -443,6 +455,7 @@ namespace Server
 
         public override void Write( int value )
         {
+            EnsureOpen();
             if( (m_Index + 4) > m_Buffer.Length )
                 Flush();
 
@@ -455,6 +468,7 @@ namespace Server
 
         public override void Write( uint value )
         {
+            EnsureOpen();
             if( (m_Index + 4) > m_Buffer.Length )
                 Flush();
 
@@ -467,6 +481,7 @@ namespace Server
 
         public override void Write( short value )
         {
+            EnsureOpen();
             if( (m_Index + 2) > m_Buffer.Length )
                 Flush();
 
@@ -477,6 +492,7 @@ namespace Server
 
         public override void Write( ushort value )
         {
+            EnsureOpen();
             if( (m_Index + 2) > m_Buffer.Length )
                 Flush();
 
@@ -487,6 +503,7 @@ namespace Server
 
         public unsafe override void Write( double value )
         {
+            EnsureOpen();
             if( (m_Index + 8) > m_Buffer.Length )
                 Flush();
 
@@ -504,6 +521,7 @@ namespace Server
 
         public unsafe override void Write( float value )
         {
+            EnsureOpen();
             if( (m_Index + 4) > m_Buffer.Length )
                 Flush();
 
@@ -523,6 +541,7 @@ namespace Server
 
         public override void Write( char value )
         {
+            EnsureOpen();
             if( (m_Index + 8) > m_Buffer.Length )
                 Flush();
 
@@ -534,6 +553,7 @@ namespace Server
 
         public override void Write( byte value )
         {
+            EnsureOpen();
             if( (m_Index + 1) > m_Buffer.Length )
                 Flush();
 
@@ -542,6 +562,7 @@ namespace Server
 
         public override void Write( sbyte value )
         {
+            EnsureOpen();
             if( (m_Index + 1) > m_Buffer.Length )
                 Flush();
 
@@ -550,6 +571,7 @@ namespace Server
 
         public override void Write( bool value )
         {
+            EnsureOpen();
             if( (m_Index + 1) > m_Buffer.Length )
                 Flush();
 
