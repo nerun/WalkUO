@@ -1246,7 +1246,8 @@ namespace Server.Items
                         if( predicate == null || predicate( typedItem ) )
                             return typedItem;
                     }
-                    else if( recurse && item is Container )
+
+                    if( recurse && item is Container )
                     {
                         T check = RecurseFindItemByType<T>( item, recurse, predicate );
 
