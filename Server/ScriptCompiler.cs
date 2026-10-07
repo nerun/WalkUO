@@ -128,6 +128,7 @@ namespace Server
                     {
                         fileInfo = new FileInfo( scriptFile );
 
+                        bin.Write( fileInfo.FullName );
                         bin.Write( fileInfo.LastWriteTimeUtc.Ticks );
                     }
 
