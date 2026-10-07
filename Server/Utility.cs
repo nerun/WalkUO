@@ -1207,6 +1207,9 @@ namespace Server
                 {
                     int c = input.ReadByte();
 
+                    if ( c < 0 )
+                        throw new EndOfStreamException();
+
                     bytes.Append( c.ToString( "X2" ) );
 
                     if ( j != 7 )
@@ -1245,6 +1248,9 @@ namespace Server
                     if ( j < rem )
                     {
                         int c = input.ReadByte();
+
+                        if ( c < 0 )
+                            throw new EndOfStreamException();
 
                         bytes.Append( c.ToString( "X2" ) );
 
