@@ -364,7 +364,7 @@ namespace Server
         private static bool m_Closing;
         public static bool Closing { get { return m_Closing; } }
 
-        private static int m_CycleIndex = 1;
+        private static long m_CycleIndex = 1;
         private static readonly float[] m_CyclesPerSecond = new float[100];
 
         public static float CyclesPerSecond { get { return m_CyclesPerSecond[(m_CycleIndex - 1) % m_CyclesPerSecond.Length]; } }
@@ -383,7 +383,7 @@ namespace Server
         {
             get
             {
-                int count = m_CycleIndex;
+                long count = m_CycleIndex;
 
                 if ( count <= 0 )
                     return 0.0;
