@@ -280,7 +280,7 @@ namespace Server
 
         public static bool IPMatchCIDR( IPAddress cidrPrefix, IPAddress ip, int cidrLength )
         {
-            if ( cidrPrefix == null || ip == null || cidrPrefix.AddressFamily == AddressFamily.InterNetworkV6 )    //Ignore IPv6 for now
+            if ( cidrPrefix == null || ip == null || cidrPrefix.AddressFamily == AddressFamily.InterNetworkV6 || ip.AddressFamily == AddressFamily.InterNetworkV6 )    //Ignore IPv6 for now
                 return false;
 
             uint cidrValue = SwapUnsignedInt( (uint)GetLongAddressValue( cidrPrefix ) );
