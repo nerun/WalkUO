@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using Server;
 using Server.Mobiles;
 using Server.Accounting;
@@ -44,6 +45,7 @@ namespace Server {
         private static readonly object m_DiskWriteSync = new object();
         private static bool m_DiskWriteProducersActive;
         private static bool m_DiskWriteCompletePending;
+        private static ExceptionDispatchInfo m_DiskWriteError;
 
         private static Queue<IEntity> _addQueue, _deleteQueue;
 
@@ -81,9 +83,27 @@ namespace Server {
             }
         }
 
+        internal static void NotifyDiskWriteFailed(Exception error)
+        {
+            lock (m_DiskWriteSync)
+            {
+                if (m_DiskWriteError == null)
+                    m_DiskWriteError = ExceptionDispatchInfo.Capture(error);
+
+                NotifyDiskWriteComplete();
+            }
+        }
+
         public static void WaitForWriteCompletion()
         {
             m_DiskWriteHandle.WaitOne();
+
+            ExceptionDispatchInfo error;
+            lock (m_DiskWriteSync)
+                error = m_DiskWriteError;
+
+            if (error != null)
+                error.Throw();
         }
 
         public static Dictionary<Serial, Mobile> Mobiles {

@@ -100,12 +100,7 @@ namespace Server
                 if (permitBackgroundWrite)
                 {
                     //This option makes it finish the writing to disk in the background, continuing even after Save() returns.
-                    Task.Factory.ContinueWhenAll(saveTasks, _ =>
-                        {
-                            CloseFiles();
-
-                            World.NotifyDiskWriteComplete();
-                        });
+                    Task.Factory.ContinueWhenAll(saveTasks, FinishBackgroundSave);
                     backgroundWriteScheduled = true;
                 }
                 else
@@ -139,6 +134,26 @@ namespace Server
                     }
                 }
             }
+        }
+
+        private void FinishBackgroundSave(Task[] tasks)
+        {
+            Exception error = null;
+
+            try { Task.WaitAll(tasks); }
+            catch (Exception ex) { error = ex; }
+
+            try { CloseFiles(); }
+            catch (Exception ex)
+            {
+                if (error == null)
+                    error = ex;
+            }
+
+            if (error != null)
+                World.NotifyDiskWriteFailed(error);
+            else
+                World.NotifyDiskWriteComplete();
         }
 
         private Task StartCommitTask(BlockingCollection<QueuedMemoryWriter> threadWriter, SequentialFileWriter data, SequentialFileWriter index)
