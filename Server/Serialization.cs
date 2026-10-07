@@ -1557,6 +1557,13 @@ namespace Server
                 long length = value.Length;
                 value.Seek( 0, SeekOrigin.End );
 
+                if( value == m_Mem )
+                {
+                    m_CurPos += length - m_LastPos;
+                    m_LastPos = length;
+                    return;
+                }
+
                 m_CurPos += m_Mem.Length - m_LastPos;
 
                 if( m_Mem.Length > 0 )
