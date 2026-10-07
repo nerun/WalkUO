@@ -1158,9 +1158,19 @@ namespace Server
 
             ArrayList list = new ArrayList();
 
-            while ( e.MoveNext() )
+            try
             {
-                list.Add( e.Current );
+                while ( e.MoveNext() )
+                {
+                    list.Add( e.Current );
+                }
+            }
+            finally
+            {
+                IDisposable disposable = e as IDisposable;
+
+                if ( disposable != null )
+                    disposable.Dispose();
             }
 
             return list;
