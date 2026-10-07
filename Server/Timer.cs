@@ -166,16 +166,24 @@ namespace Server
 
             public static void DumpInfo( TextWriter tw )
             {
-                for ( int i = 0; i < 8; ++i )
+                Timer[][] timers = new Timer[m_Timers.Length][];
+
+                lock ( m_Changed )
+                {
+                    for ( int i = 0; i < timers.Length; ++i )
+                        timers[i] = m_Timers[i].ToArray();
+                }
+
+                for ( int i = 0; i < timers.Length; ++i )
                 {
                     tw.WriteLine( "Priority: {0}", (TimerPriority)i );
                     tw.WriteLine();
 
                     Dictionary<string, List<Timer>> hash = new Dictionary<string, List<Timer>>();
 
-                    for ( int j = 0; j < m_Timers[i].Count; ++j )
+                    for ( int j = 0; j < timers[i].Length; ++j )
                     {
-                        Timer t = m_Timers[i][j];
+                        Timer t = timers[i][j];
 
                         string key = t.ToString();
 
@@ -193,7 +201,7 @@ namespace Server
                         string key = kv.Key;
                         List<Timer> list = kv.Value;
 
-                        tw.WriteLine( "Type: {0}; Count: {1}; Percent: {2}%", key, list.Count, (int)(100 * (list.Count / (double)m_Timers[i].Count)) );
+                        tw.WriteLine( "Type: {0}; Count: {1}; Percent: {2}%", key, list.Count, (int)(100 * (list.Count / (double)timers[i].Length)) );
                     }
 
                     tw.WriteLine();
