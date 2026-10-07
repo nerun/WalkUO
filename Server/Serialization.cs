@@ -1553,16 +1553,19 @@ namespace Server
             }
             set
             {
+                BinaryWriter bin = new BinaryWriter( value, Utility.UTF8WithEncoding );
+                long length = value.Length;
+                value.Seek( 0, SeekOrigin.End );
+
                 m_CurPos += m_Mem.Length - m_LastPos;
 
                 if( m_Mem.Length > 0 )
                     Enqueue( m_Mem );
 
                 m_Mem = value;
-                m_Bin = new BinaryWriter( m_Mem, Utility.UTF8WithEncoding );
-                m_LastPos = m_Mem.Length;
+                m_Bin = bin;
+                m_LastPos = length;
                 m_CurPos += m_LastPos;
-                m_Mem.Seek( 0, SeekOrigin.End );
             }
         }
 
