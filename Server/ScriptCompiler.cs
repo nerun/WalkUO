@@ -132,6 +132,7 @@ namespace Server
                     }
 
                     bin.Write( debug );
+                    bin.Write( Core.HaltOnWarning );
                     bin.Write( Core.Version.ToString() );
                     bin.Write( GetCompilerOptions( debug ) );
 
@@ -262,7 +263,7 @@ namespace Server
 #else
                 if( results.Errors.Count > 0 ) {
                     foreach( CompilerError err in results.Errors ) {
-                        if ( !err.IsWarning ) {
+                        if ( !err.IsWarning || Core.HaltOnWarning ) {
                             assembly = null;
                             return false;
                         }
