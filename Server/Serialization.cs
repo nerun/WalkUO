@@ -1228,9 +1228,20 @@ namespace Server
             return ReadGuild() as T;
         }
 
-        public override ArrayList ReadItemList()
+        private int ReadCollectionCount()
         {
             int count = ReadInt();
+            Stream stream = m_File.BaseStream;
+
+            if( count > 0 && stream.CanSeek && count > (stream.Length - stream.Position) / 4 )
+                throw new EndOfStreamException();
+
+            return count;
+        }
+
+        public override ArrayList ReadItemList()
+        {
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 ArrayList list = new ArrayList( count );
@@ -1251,7 +1262,7 @@ namespace Server
 
         public override ArrayList ReadMobileList()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 ArrayList list = new ArrayList( count );
@@ -1272,7 +1283,7 @@ namespace Server
 
         public override ArrayList ReadGuildList()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 ArrayList list = new ArrayList( count );
@@ -1298,7 +1309,7 @@ namespace Server
 
         public override List<T> ReadStrongItemList<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 List<T> list = new List<T>( count );
@@ -1324,7 +1335,7 @@ namespace Server
 
         public override HashSet<T> ReadItemSet<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if( count > 0 )
             {
@@ -1355,7 +1366,7 @@ namespace Server
 
         public override List<T> ReadStrongMobileList<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 List<T> list = new List<T>( count );
@@ -1381,7 +1392,7 @@ namespace Server
 
         public override HashSet<T> ReadMobileSet<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if( count > 0 )
             {
@@ -1412,7 +1423,7 @@ namespace Server
 
         public override List<T> ReadStrongGuildList<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 List<T> list = new List<T>( count );
@@ -1438,7 +1449,7 @@ namespace Server
 
         public override HashSet<T> ReadGuildSet<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if( count > 0 )
             {
