@@ -871,13 +871,34 @@ namespace Server
             );
         }
 
+        private static void WriteContent( StreamWriter writer, string str )
+        {
+            if ( str == null )
+                return;
+
+            int start = 0;
+            int newline;
+
+            while ( (newline = str.IndexOf( '\n', start )) >= 0 )
+            {
+                writer.Write( str.Substring( start, newline - start + 1 ) );
+                start = newline + 1;
+
+                if ( start < str.Length )
+                    writer.Write( DateTime.UtcNow.ToString( DateFormat ) );
+            }
+
+            if ( start < str.Length )
+                writer.Write( str.Substring( start ) );
+        }
+
         public override void Write( string str )
         {
             if ( str == null )
                 return;
 
             WriteInternal(
-                writer => writer.Write( str ),
+                writer => WriteContent( writer, str ),
                 str.Length > 0 && str[str.Length - 1] == '\n'
             );
         }
@@ -885,7 +906,15 @@ namespace Server
         public override void WriteLine( string line )
         {
             WriteInternal(
-                writer => writer.WriteLine( line ),
+                writer =>
+                {
+                    WriteContent( writer, line );
+
+                    if ( line != null && line.Length > 0 && line[line.Length - 1] == '\n' )
+                        writer.Write( DateTime.UtcNow.ToString( DateFormat ) );
+
+                    writer.WriteLine();
+                },
                 true
             );
         }
