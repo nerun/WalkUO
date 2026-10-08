@@ -440,7 +440,8 @@ namespace Server {
                             try {
                                 ctorArgs[0] = ( Serial ) serial;
                                 m = ( Mobile ) ( ctor.Invoke( ctorArgs ) );
-                            } catch {
+                            } catch ( Exception e ) {
+                                throw new Exception( String.Format( "Failed to construct mobile '{0}' with serial {1}.", typeName, (Serial)serial ), e );
                             }
 
                             if ( m != null ) {
@@ -489,7 +490,8 @@ namespace Server {
                             try {
                                 ctorArgs[0] = ( Serial ) serial;
                                 item = ( Item ) ( ctor.Invoke( ctorArgs ) );
-                            } catch {
+                            } catch ( Exception e ) {
+                                throw new Exception( String.Format( "Failed to construct item '{0}' with serial {1}.", typeName, (Serial)serial ), e );
                             }
 
                             if ( item != null ) {
