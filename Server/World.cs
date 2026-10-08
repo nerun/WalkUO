@@ -450,6 +450,9 @@ namespace Server {
                             if ( objs == null )
                                 continue;
 
+                            if ( !((Serial)serial).IsMobile )
+                                throw new InvalidDataException( String.Format( "Invalid mobile serial {0} in world index.", (Serial)serial ) );
+
                             if ( m_Mobiles.ContainsKey( (Serial)serial ) )
                                 throw new InvalidDataException( String.Format( "Duplicate mobile serial {0} in world index.", (Serial)serial ) );
 
@@ -502,6 +505,9 @@ namespace Server {
 
                             if ( objs == null )
                                 continue;
+
+                            if ( !((Serial)serial).IsItem )
+                                throw new InvalidDataException( String.Format( "Invalid item serial {0} in world index.", (Serial)serial ) );
 
                             if ( m_Items.ContainsKey( (Serial)serial ) )
                                 throw new InvalidDataException( String.Format( "Duplicate item serial {0} in world index.", (Serial)serial ) );
