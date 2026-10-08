@@ -367,6 +367,11 @@ namespace Server {
             return types;
         }
 
+        private static void CheckDataRange( IEntityEntry entry, long dataLength ) {
+            if ( entry.Position < 0 || entry.Length < 0 || entry.Position > dataLength || entry.Length > dataLength - entry.Position )
+                throw new InvalidDataException( "Serialized object extends beyond its data file." );
+        }
+
         private static void CheckSaveFiles( params string[] paths ) {
             bool anyExists = false;
 
@@ -549,9 +554,9 @@ namespace Server {
                         Mobile m = entry.Mobile;
 
                         if ( m != null ) {
-                            reader.Seek( entry.Position, SeekOrigin.Begin );
-
                             try {
+                                CheckDataRange( entry, bin.Length );
+                                reader.Seek( entry.Position, SeekOrigin.Begin );
                                 m_LoadingType = entry.TypeName;
                                 m.Deserialize( reader );
 
@@ -584,9 +589,9 @@ namespace Server {
                         Item item = entry.Item;
 
                         if ( item != null ) {
-                            reader.Seek( entry.Position, SeekOrigin.Begin );
-
                             try {
+                                CheckDataRange( entry, bin.Length );
+                                reader.Seek( entry.Position, SeekOrigin.Begin );
                                 m_LoadingType = entry.TypeName;
                                 item.Deserialize( reader );
 
@@ -621,9 +626,9 @@ namespace Server {
                         BaseGuild g = entry.Guild;
 
                         if ( g != null ) {
-                            reader.Seek( entry.Position, SeekOrigin.Begin );
-
                             try {
+                                CheckDataRange( entry, bin.Length );
+                                reader.Seek( entry.Position, SeekOrigin.Begin );
                                 g.Deserialize( reader );
 
                                 if ( reader.Position != ( entry.Position + entry.Length ) )
