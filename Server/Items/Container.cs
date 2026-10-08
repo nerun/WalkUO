@@ -285,6 +285,35 @@ namespace Server.Items
 
         #region Consume[...]
 
+        private static int GetAvailableAmount( Item item, Dictionary<Item, int> reserved )
+        {
+            int amount;
+            reserved.TryGetValue( item, out amount );
+            return item.Deleted ? 0 : item.Amount - amount;
+        }
+
+        private static bool ReserveItems( Item[] items, int amount, Dictionary<Item, int> reserved )
+        {
+            int need = amount;
+
+            for ( int i = 0; need > 0 && i < items.Length; ++i )
+            {
+                Item item = items[i];
+                int available = GetAvailableAmount( item, reserved );
+                int take = Math.Min( available, need );
+
+                if ( take > 0 )
+                {
+                    int previous;
+                    reserved.TryGetValue( item, out previous );
+                    reserved[item] = previous + take;
+                    need -= take;
+                }
+            }
+
+            return need <= 0;
+        }
+
         public bool ConsumeTotalGrouped( Type type, int amount, bool recurse, OnItemConsumed callback, CheckItemGroup grouper )
         {
             if ( grouper == null )
@@ -383,99 +412,12 @@ namespace Server.Items
             else if ( grouper == null )
                 throw new ArgumentNullException();
 
-            Item[][][] items = new Item[types.Length][][];
-            int[][] totals = new int[types.Length][];
+            Type[][] alternatives = new Type[types.Length][];
 
             for ( int i = 0; i < types.Length; ++i )
-            {
-                Item[] typedItems = FindItemsByType( types[i], recurse );
-                Array.Sort( typedItems, new GroupComparer( grouper ) );
+                alternatives[i] = new Type[] { types[i] };
 
-                List<List<Item>> groups = new List<List<Item>>();
-                int idx = 0;
-
-                while ( idx < typedItems.Length )
-                {
-                    Item a = typedItems[idx++];
-                    List<Item> group = new List<Item>();
-
-                    group.Add( a );
-
-                    while ( idx < typedItems.Length )
-                    {
-                        Item b = typedItems[idx];
-                        int v = grouper( a, b );
-
-                        if ( v == 0 )
-                            group.Add( b );
-                        else
-                            break;
-
-                        ++idx;
-                    }
-
-                    groups.Add( group );
-                }
-
-                items[i] = new Item[groups.Count][];
-                totals[i] = new int[groups.Count];
-
-                bool hasEnough = false;
-
-                for ( int j = 0; j < groups.Count; ++j )
-                {
-                    items[i][j] = groups[j].ToArray();
-                    //items[i][j] = (Item[])(((ArrayList)groups[j]).ToArray( typeof( Item ) ));
-
-                    for ( int k = 0; k < items[i][j].Length; ++k )
-                        totals[i][j] += items[i][j][k].Amount;
-
-                    if ( totals[i][j] >= amounts[i] )
-                        hasEnough = true;
-                }
-
-                if ( !hasEnough )
-                    return i;
-            }
-
-            for ( int i = 0; i < items.Length; ++i )
-            {
-                for ( int j = 0; j < items[i].Length; ++j )
-                {
-                    if ( totals[i][j] >= amounts[i] )
-                    {
-                        int need = amounts[i];
-
-                        for ( int k = 0; k < items[i][j].Length; ++k )
-                        {
-                            Item item = items[i][j][k];
-
-                            int theirAmount = item.Amount;
-
-                            if ( theirAmount < need )
-                            {
-                                if ( callback != null )
-                                    callback( item, theirAmount );
-
-                                item.Delete();
-                                need -= theirAmount;
-                            }
-                            else
-                            {
-                                if ( callback != null )
-                                    callback( item, need );
-
-                                item.Consume( need );
-                                break;
-                            }
-                        }
-
-                        break;
-                    }
-                }
-            }
-
-            return -1;
+            return ConsumeTotalGrouped( alternatives, amounts, recurse, callback, grouper );
         }
 
         public int ConsumeTotalGrouped( Type[][] types, int[] amounts, bool recurse, OnItemConsumed callback, CheckItemGroup grouper )
@@ -485,6 +427,7 @@ namespace Server.Items
             else if ( grouper == null )
                 throw new ArgumentNullException();
 
+            Dictionary<Item, int> reserved = new Dictionary<Item, int>();
             Item[][][] items = new Item[types.Length][][];
             int[][] totals = new int[types.Length][];
 
@@ -529,10 +472,13 @@ namespace Server.Items
                     items[i][j] = groups[j].ToArray();
 
                     for ( int k = 0; k < items[i][j].Length; ++k )
-                        totals[i][j] += items[i][j][k].Amount;
+                        totals[i][j] += GetAvailableAmount( items[i][j][k], reserved );
 
-                    if ( totals[i][j] >= amounts[i] )
+                    if ( !hasEnough && totals[i][j] >= amounts[i] )
+                    {
+                        ReserveItems( items[i][j], amounts[i], reserved );
                         hasEnough = true;
+                    }
                 }
 
                 if ( !hasEnough )
@@ -550,6 +496,9 @@ namespace Server.Items
                         for ( int k = 0; k < items[i][j].Length; ++k )
                         {
                             Item item = items[i][j][k];
+
+                            if ( item.Deleted )
+                                continue;
 
                             int theirAmount = item.Amount;
 
@@ -594,17 +543,14 @@ namespace Server.Items
             if ( types.Length != amounts.Length )
                 throw new ArgumentException();
 
+            Dictionary<Item, int> reserved = new Dictionary<Item, int>();
             Item[][] items = new Item[types.Length][];
-            int[] totals = new int[types.Length];
 
             for ( int i = 0; i < types.Length; ++i )
             {
                 items[i] = FindItemsByType( types[i], recurse );
 
-                for ( int j = 0; j < items[i].Length; ++j )
-                    totals[i] += items[i][j].Amount;
-
-                if ( totals[i] < amounts[i] )
+                if ( !ReserveItems( items[i], amounts[i], reserved ) )
                     return i;
             }
 
@@ -615,6 +561,9 @@ namespace Server.Items
                 for ( int j = 0; j < items[i].Length; ++j )
                 {
                     Item item = items[i][j];
+
+                    if ( item.Deleted )
+                        continue;
 
                     int theirAmount = item.Amount;
 
@@ -655,50 +604,12 @@ namespace Server.Items
             if ( types.Length != amounts.Length )
                 throw new ArgumentException();
 
-            Item[][] items = new Item[types.Length][];
-            int[] totals = new int[types.Length];
+            Type[][] alternatives = new Type[types.Length][];
 
             for ( int i = 0; i < types.Length; ++i )
-            {
-                items[i] = FindItemsByType( types[i], recurse );
+                alternatives[i] = new Type[] { types[i] };
 
-                for ( int j = 0; j < items[i].Length; ++j )
-                    totals[i] += items[i][j].Amount;
-
-                if ( totals[i] < amounts[i] )
-                    return i;
-            }
-
-            for ( int i = 0; i < types.Length; ++i )
-            {
-                int need = amounts[i];
-
-                for ( int j = 0; j < items[i].Length; ++j )
-                {
-                    Item item = items[i][j];
-
-                    int theirAmount = item.Amount;
-
-                    if ( theirAmount < need )
-                    {
-                        if ( callback != null )
-                            callback( item, theirAmount );
-
-                        item.Delete();
-                        need -= theirAmount;
-                    }
-                    else
-                    {
-                        if ( callback != null )
-                            callback( item, need );
-
-                        item.Consume( need );
-                        break;
-                    }
-                }
-            }
-
-            return -1;
+            return ConsumeTotal( alternatives, amounts, recurse, callback );
         }
 
         public bool ConsumeTotal( Type type, int amount )
