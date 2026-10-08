@@ -367,6 +367,18 @@ namespace Server {
             return types;
         }
 
+        private static int ReadIndexCount( BinaryReader reader ) {
+            int count = reader.ReadInt32();
+
+            if ( count < 0 )
+                throw new InvalidDataException( "Negative world index count." );
+
+            if ( count > (reader.BaseStream.Length - reader.BaseStream.Position) / 20 )
+                throw new EndOfStreamException( "World index does not contain all declared records." );
+
+            return count;
+        }
+
         private static void CheckDataRange( IEntityEntry entry, long dataLength ) {
             if ( entry.Position < 0 || entry.Length < 0 || entry.Position > dataLength || entry.Length > dataLength - entry.Position )
                 throw new InvalidDataException( "Serialized object extends beyond its data file." );
@@ -423,7 +435,7 @@ namespace Server {
 
                         List<Tuple<ConstructorInfo, string>> types = ReadTypes( tdbReader );
 
-                        mobileCount = idxReader.ReadInt32();
+                        mobileCount = ReadIndexCount( idxReader );
 
                         m_Mobiles = new Dictionary<Serial, Mobile>( mobileCount );
 
@@ -473,7 +485,7 @@ namespace Server {
 
                         List<Tuple<ConstructorInfo, string>> types = ReadTypes( tdbReader );
 
-                        itemCount = idxReader.ReadInt32();
+                        itemCount = ReadIndexCount( idxReader );
 
                         m_Items = new Dictionary<Serial, Item>( itemCount );
 
@@ -518,7 +530,7 @@ namespace Server {
                 using ( FileStream idx = new FileStream( GuildIndexPath, FileMode.Open, FileAccess.Read, FileShare.Read ) ) {
                     BinaryReader idxReader = new BinaryReader( idx );
 
-                    guildCount = idxReader.ReadInt32();
+                    guildCount = ReadIndexCount( idxReader );
 
                     CreateGuildEventArgs createEventArgs = new CreateGuildEventArgs( -1 );
                     for ( int i = 0; i < guildCount; ++i ) {
