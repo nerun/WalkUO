@@ -367,6 +367,20 @@ namespace Server {
             return types;
         }
 
+        private static void CheckSaveFiles( params string[] paths ) {
+            bool anyExists = false;
+
+            for ( int i = 0; i < paths.Length; ++i )
+                anyExists |= File.Exists( paths[i] );
+
+            if ( !anyExists )
+                return;
+
+            for ( int i = 0; i < paths.Length; ++i )
+                if ( !File.Exists( paths[i] ) )
+                    throw new FileNotFoundException( "Incomplete world save: a required file is missing.", paths[i] );
+        }
+
         public static void Load() {
             if ( m_Loaded )
                 return;
@@ -382,6 +396,10 @@ namespace Server {
 
             _addQueue = new Queue<IEntity>();
             _deleteQueue = new Queue<IEntity>();
+
+            CheckSaveFiles( MobileIndexPath, MobileTypesPath, MobileDataPath );
+            CheckSaveFiles( ItemIndexPath, ItemTypesPath, ItemDataPath );
+            CheckSaveFiles( GuildIndexPath, GuildDataPath );
 
             int mobileCount = 0, itemCount = 0, guildCount = 0;
 
