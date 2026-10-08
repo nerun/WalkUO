@@ -285,6 +285,13 @@ namespace Server.Items
 
         #region Consume[...]
 
+        private static void ValidateAmounts( int[] amounts )
+        {
+            for ( int i = 0; i < amounts.Length; ++i )
+                if ( amounts[i] < 0 )
+                    throw new ArgumentOutOfRangeException( "amounts" );
+        }
+
         private static int GetAvailableAmount( Item item, Dictionary<Item, int> reserved )
         {
             int amount;
@@ -318,6 +325,8 @@ namespace Server.Items
         {
             if ( grouper == null )
                 throw new ArgumentNullException();
+            else if ( amount < 0 )
+                throw new ArgumentOutOfRangeException( "amount" );
 
             Item[] typedItems = FindItemsByType( type, recurse );
             Array.Sort( typedItems, new GroupComparer( grouper ) );
@@ -426,6 +435,8 @@ namespace Server.Items
                 throw new ArgumentException();
             else if ( grouper == null )
                 throw new ArgumentNullException();
+
+            ValidateAmounts( amounts );
 
             Dictionary<Item, int> reserved = new Dictionary<Item, int>();
             Item[][][] items = new Item[types.Length][][];
@@ -543,6 +554,8 @@ namespace Server.Items
             if ( types.Length != amounts.Length )
                 throw new ArgumentException();
 
+            ValidateAmounts( amounts );
+
             Dictionary<Item, int> reserved = new Dictionary<Item, int>();
             Item[][] items = new Item[types.Length][];
 
@@ -624,6 +637,9 @@ namespace Server.Items
 
         public bool ConsumeTotal( Type type, int amount, bool recurse, OnItemConsumed callback )
         {
+            if ( amount < 0 )
+                throw new ArgumentOutOfRangeException( "amount" );
+
             Item[] items = FindItemsByType( type, recurse );
 
             // First pass, compute total
@@ -674,6 +690,9 @@ namespace Server.Items
 
         public int ConsumeUpTo( Type type, int amount, bool recurse )
         {
+            if ( amount < 0 )
+                throw new ArgumentOutOfRangeException( "amount" );
+
             int consumed = 0;
 
             Queue<Item> toDelete = new Queue<Item>();
