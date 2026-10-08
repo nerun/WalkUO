@@ -1760,13 +1760,19 @@ namespace Server
 
                 var pool = PooledEnumeration.EnumerateSectors(map, bounds).SelectMany(s => selector(s, bounds));
 
-                if (e != null)
+                if (e == null)
+                {
+                    e = new PooledEnumerable<T>(Enumerable.Empty<T>());
+                }
+
+                try
                 {
                     e._Pool.AddRange(pool);
                 }
-                else
+                catch
                 {
-                    e = new PooledEnumerable<T>(pool);
+                    e.Free();
+                    throw;
                 }
 
                 return e;
