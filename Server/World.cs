@@ -450,6 +450,9 @@ namespace Server {
                             if ( objs == null )
                                 continue;
 
+                            if ( m_Mobiles.ContainsKey( (Serial)serial ) )
+                                throw new InvalidDataException( String.Format( "Duplicate mobile serial {0} in world index.", (Serial)serial ) );
+
                             Mobile m = null;
                             ConstructorInfo ctor = objs.Item1;
                             string typeName = objs.Item2;
@@ -499,6 +502,9 @@ namespace Server {
 
                             if ( objs == null )
                                 continue;
+
+                            if ( m_Items.ContainsKey( (Serial)serial ) )
+                                throw new InvalidDataException( String.Format( "Duplicate item serial {0} in world index.", (Serial)serial ) );
 
                             Item item = null;
                             ConstructorInfo ctor = objs.Item1;
