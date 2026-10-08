@@ -974,10 +974,11 @@ namespace Server
                 pool = new List<Item>(128); // Arbitrary limit
             }
 
-            var eable = map.GetItemsInRange(new Point3D(x, y, 0), 0);
+            IPooledEnumerable<Item> eable = null;
 
             try
             {
+                eable = map.GetItemsInRange(new Point3D(x, y, 0), 0);
                 pool.AddRange(
                     eable.Where(item => item.ItemID <= TileData.MaxItemValue && !(item is BaseMulti))
                          .OrderBy(item => item.Z)
@@ -990,7 +991,8 @@ namespace Server
             }
             finally
             {
-                eable.Free();
+                if (eable != null)
+                    eable.Free();
             }
 
             return pool;
