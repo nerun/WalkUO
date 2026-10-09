@@ -698,6 +698,8 @@ namespace Server.Network {
                 bool result = false;
 
                 do {
+                    result = false;
+
                     lock ( m_AsyncLock ) {
                         if ( ( m_AsyncState & ( AsyncState.Pending | AsyncState.Paused ) ) == 0 ) {
                             m_AsyncState |= AsyncState.Pending;
