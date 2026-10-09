@@ -505,9 +505,9 @@ namespace Server
             }
 
             VirtualCheck.Delete();
-            VirtualCheck = null;
-
             Container.Delete();
+
+            VirtualCheck = null;
             Container = null;
 
             Mobile = null;
