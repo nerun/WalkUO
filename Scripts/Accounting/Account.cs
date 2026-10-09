@@ -36,7 +36,7 @@ using Server.Network;
 
 namespace Server.Accounting
 {
-    public class Account : IAccount, IComparable, IComparable<Account>
+    public class Account : IAccount, IAccountCurrencyExchange, IComparable, IComparable<Account>
     {
         public static readonly TimeSpan YoungDuration = TimeSpan.FromHours( 40.0 );
 
@@ -1377,6 +1377,9 @@ namespace Server.Accounting
         }
 
         #region Gold Account
+        private static readonly object m_CurrencySyncRoot = new object();
+        private double m_TotalCurrency;
+
         /// <summary>
         ///     This amount specifies the value at which point Gold turns to Platinum.
         ///     By default, when 1,000,000,000 Gold is accumulated, it will transform
@@ -1395,7 +1398,19 @@ namespace Server.Accounting
         ///     CurrencyThreshold value.
         /// </summary>
         [CommandProperty(AccessLevel.Administrator, true)]
-        public double TotalCurrency { get; private set; }
+        public double TotalCurrency
+        {
+            get
+            {
+                lock (m_CurrencySyncRoot)
+                    return m_TotalCurrency;
+            }
+            private set
+            {
+                lock (m_CurrencySyncRoot)
+                    m_TotalCurrency = value;
+            }
+        }
 
         /// <summary>
         ///     This amount represents the current amount of Gold owned by the player.
@@ -1429,8 +1444,49 @@ namespace Server.Accounting
                 return false;
             }
 
-            TotalCurrency += amount;
+            lock (m_CurrencySyncRoot)
+                m_TotalCurrency += amount;
+
             return true;
+        }
+
+        bool IAccountCurrencyExchange.TryExchangeCurrency(IAccount other, double offered, double received)
+        {
+            var account = other as Account;
+
+            if (account == null || Double.IsNaN(offered) || Double.IsInfinity(offered) || offered < 0 ||
+                Double.IsNaN(received) || Double.IsInfinity(received) || received < 0)
+            {
+                return false;
+            }
+
+            lock (m_CurrencySyncRoot)
+            {
+                var fromBalance = m_TotalCurrency;
+                var toBalance = account.m_TotalCurrency;
+
+                if (Double.IsNaN(fromBalance) || Double.IsInfinity(fromBalance) || fromBalance < offered ||
+                    Double.IsNaN(toBalance) || Double.IsInfinity(toBalance) || toBalance < received)
+                {
+                    return false;
+                }
+
+                if (ReferenceEquals(this, account))
+                    return true;
+
+                var fromResult = (fromBalance - offered) + received;
+                var toResult = (toBalance - received) + offered;
+
+                if (Double.IsNaN(fromResult) || Double.IsInfinity(fromResult) || fromResult < 0 ||
+                    Double.IsNaN(toResult) || Double.IsInfinity(toResult) || toResult < 0)
+                {
+                    return false;
+                }
+
+                m_TotalCurrency = fromResult;
+                account.m_TotalCurrency = toResult;
+                return true;
+            }
         }
 
         /// <summary>
@@ -1489,13 +1545,16 @@ namespace Server.Accounting
                 return true;
             }
 
-            if (amount > TotalCurrency)
+            lock (m_CurrencySyncRoot)
             {
-                return false;
-            }
+                if (amount > m_TotalCurrency)
+                {
+                    return false;
+                }
 
-            TotalCurrency -= amount;
-            return true;
+                m_TotalCurrency -= amount;
+                return true;
+            }
         }
 
         /// <summary>

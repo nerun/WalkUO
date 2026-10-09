@@ -34,6 +34,7 @@ namespace Server
 
         private bool m_Valid;
         private bool m_Completing;
+        private bool m_SettlementStarted;
 
         public SecureTrade(Mobile from, Mobile to)
         {
@@ -229,7 +230,7 @@ namespace Server
 
         public void Update()
         {
-            if (!m_Valid || m_Completing)
+            if (!m_Valid || m_Completing || m_SettlementStarted)
             {
                 return;
             }
@@ -327,21 +328,25 @@ namespace Server
 
                 if (!allowed)
                 {
-                    m_From.Accepted = false;
-                    m_To.Accepted = false;
-
-                    m_From.Mobile.Send(new UpdateSecureTrade(m_From.Container, m_From.Accepted, m_To.Accepted));
-                    m_To.Mobile.Send(new UpdateSecureTrade(m_To.Container, m_To.Accepted, m_From.Accepted));
-
+                    ClearAcceptance();
                     return;
                 }
 
                 m_Completing = true;
                 try
                 {
-                    if (AccountGold.Enabled && m_From.Mobile.Account != null && m_To.Mobile.Account != null)
+                    m_SettlementStarted = true;
+
+                    if (AccountGold.Enabled && !HandleAccountGoldTrade())
                     {
-                        HandleAccountGoldTrade();
+                        m_SettlementStarted = false;
+                        ClearAcceptance();
+                        return;
+                    }
+
+                    if (!m_Valid || m_From.IsDisposed || m_To.IsDisposed)
+                    {
+                        return;
                     }
 
                     list = m_From.Container.Items;
@@ -412,40 +417,44 @@ namespace Server
             }
         }
 
-        private void HandleAccountGoldTrade()
+        private void ClearAcceptance()
         {
-            int fromPlatSend = 0, fromGoldSend = 0, fromPlatRecv = 0, fromGoldRecv = 0;
-            int toPlatSend = 0, toGoldSend = 0, toPlatRecv = 0, toGoldRecv = 0;
+            m_From.Accepted = false;
+            m_To.Accepted = false;
 
-            var fromCurrency = m_From.Plat + (m_From.Gold / Math.Max(1.0, AccountGold.CurrencyThreshold));
-            var toCurrency = m_To.Plat + (m_To.Gold / Math.Max(1.0, AccountGold.CurrencyThreshold));
+            m_From.Mobile.Send(new UpdateSecureTrade(m_From.Container, m_From.Accepted, m_To.Accepted));
+            m_To.Mobile.Send(new UpdateSecureTrade(m_To.Container, m_To.Accepted, m_From.Accepted));
+        }
 
-            if (fromCurrency > 0 && m_From.Mobile.Account.WithdrawCurrency(fromCurrency))
-            {
-                fromPlatSend = m_From.Plat;
-                fromGoldSend = m_From.Gold;
+        private bool HandleAccountGoldTrade()
+        {
+            var fromPlat = m_From.Plat;
+            var fromGold = m_From.Gold;
+            var toPlat = m_To.Plat;
+            var toGold = m_To.Gold;
 
-                if (m_To.Mobile.Account.DepositCurrency(fromCurrency))
-                {
-                    toPlatRecv = fromPlatSend;
-                    toGoldRecv = fromGoldSend;
-                }
-            }
+            if (fromPlat < 0 || fromGold < 0 || toPlat < 0 || toGold < 0)
+                return false;
 
-            if (toCurrency > 0 && m_To.Mobile.Account.WithdrawCurrency(toCurrency))
-            {
-                toPlatSend = m_To.Plat;
-                toGoldSend = m_To.Gold;
+            if (fromPlat == 0 && fromGold == 0 && toPlat == 0 && toGold == 0)
+                return true;
 
-                if (m_From.Mobile.Account.DepositCurrency(toCurrency))
-                {
-                    fromPlatRecv = toPlatSend;
-                    fromGoldRecv = toGoldSend;
-                }
-            }
+            var exchange = m_From.Mobile.Account as IAccountCurrencyExchange;
+            var other = m_To.Mobile.Account;
 
-            HandleAccountGoldTrade(m_From.Mobile, m_To.Mobile, fromPlatSend, fromGoldSend, fromPlatRecv, fromGoldRecv);
-            HandleAccountGoldTrade(m_To.Mobile, m_From.Mobile, toPlatSend, toGoldSend, toPlatRecv, toGoldRecv);
+            if (exchange == null || other == null)
+                return false;
+
+            var threshold = Math.Max(1.0, AccountGold.CurrencyThreshold);
+            var fromCurrency = fromPlat + (fromGold / threshold);
+            var toCurrency = toPlat + (toGold / threshold);
+
+            if (!exchange.TryExchangeCurrency(other, fromCurrency, toCurrency))
+                return false;
+
+            HandleAccountGoldTrade(m_From.Mobile, m_To.Mobile, fromPlat, fromGold, toPlat, toGold);
+            HandleAccountGoldTrade(m_To.Mobile, m_From.Mobile, toPlat, toGold, fromPlat, fromGold);
+            return true;
         }
 
         private static void HandleAccountGoldTrade(

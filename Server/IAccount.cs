@@ -201,6 +201,17 @@ namespace Server.Accounting
         void GetBalance(out long gold, out double totalGold, out long plat, out double totalPlat);
     }
 
+    /// <summary>
+    /// Optional joint currency settlement for secure trades. Both offers must be
+    /// affordable independently. False must leave both balances unchanged; true
+    /// means both balances have been committed. Implementations must not invoke
+    /// callbacks between the two balance updates.
+    /// </summary>
+    public interface IAccountCurrencyExchange
+    {
+        bool TryExchangeCurrency(IAccount other, double offered, double received);
+    }
+
     public interface IAccount : IGoldAccount, IComparable<IAccount>
     {
         string Username { get; set; }
