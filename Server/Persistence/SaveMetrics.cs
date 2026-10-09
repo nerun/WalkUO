@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Text;
 
 namespace Server {
@@ -117,13 +118,20 @@ namespace Server {
             if ( !isDisposed ) {
                 isDisposed = true;
 
-                numberOfWorldSaves.Dispose();
+                ExceptionDispatchInfo error = null;
 
-                itemsPerSecond.Dispose();
-                mobilesPerSecond.Dispose();
+                foreach ( PerformanceCounter counter in new PerformanceCounter[] { numberOfWorldSaves, itemsPerSecond, mobilesPerSecond, serializedBytesPerSecond, writtenBytesPerSecond } ) {
+                    if ( counter != null ) {
+                        try { counter.Dispose(); }
+                        catch ( Exception ex ) {
+                            if ( error == null )
+                                error = ExceptionDispatchInfo.Capture( ex );
+                        }
+                    }
+                }
 
-                serializedBytesPerSecond.Dispose();
-                writtenBytesPerSecond.Dispose();
+                if ( error != null )
+                    error.Throw();
             }
         }
     }
