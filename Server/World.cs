@@ -140,12 +140,14 @@ namespace Server {
 
             p.Acquire();
 
-            for ( int i = 0; i < list.Count; ++i ) {
-                if ( list[i].Mobile != null )
-                    list[i].Send( p );
+            try {
+                for ( int i = 0; i < list.Count; ++i ) {
+                    if ( list[i].Mobile != null )
+                        list[i].Send( p );
+                }
+            } finally {
+                p.Release();
             }
-
-            p.Release();
 
             NetState.FlushAll();
         }
