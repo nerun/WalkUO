@@ -5276,26 +5276,27 @@ namespace Server
             Packet pNew = null;
             Packet pOld = null;
 
-            foreach( NetState ns in eable ) {
-                if( ns.Mobile.CanSee( this ) ) {
-                    if( ns.DamagePacket ) {
-                        if( pNew == null )
-                            pNew = Packet.Acquire( new DamagePacket( this, amount ) );
+            try {
+                foreach( NetState ns in eable ) {
+                    if( ns.Mobile.CanSee( this ) ) {
+                        if( ns.DamagePacket ) {
+                            if( pNew == null )
+                                pNew = Packet.Acquire( new DamagePacket( this, amount ) );
 
-                        ns.Send( pNew );
-                    } else {
-                        if( pOld == null )
-                            pOld = Packet.Acquire( new DamagePacketOld( this, amount ) );
+                            ns.Send( pNew );
+                        } else {
+                            if( pOld == null )
+                                pOld = Packet.Acquire( new DamagePacketOld( this, amount ) );
 
-                        ns.Send( pOld );
+                            ns.Send( pOld );
+                        }
                     }
                 }
+            } finally {
+                Packet.Release( pNew );
+                Packet.Release( pOld );
+                eable.Free();
             }
-
-            Packet.Release( pNew );
-            Packet.Release( pOld );
-
-            eable.Free();
         }
 
         public static bool m_DefaultShowVisibleDamage, m_DefaultCanSeeVisibleDamage;
