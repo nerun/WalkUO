@@ -867,6 +867,7 @@ namespace Server.Network {
                     _sending = true;
                     m_SendEventArgs.SetBuffer( gram.Buffer, 0, gram.Length );
                     Send_Start();
+                    return !m_Disposing;
                 }
             }
 
