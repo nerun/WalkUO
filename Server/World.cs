@@ -321,6 +321,13 @@ namespace Server {
         {
             int count = tdbReader.ReadInt32();
 
+            if ( count < 0 )
+                throw new InvalidDataException( "Negative world type count." );
+
+            // Each type name needs at least one byte for its string length.
+            if ( count > tdbReader.BaseStream.Length - tdbReader.BaseStream.Position )
+                throw new EndOfStreamException( "World type table does not contain all declared types." );
+
             List<Tuple<ConstructorInfo, string>> types = new List<Tuple<ConstructorInfo, string>>( count );
 
             for (int i = 0; i < count; ++i)
