@@ -355,6 +355,11 @@ namespace Server
 
                         item.OnSecureTrade(m_From.Mobile, m_To.Mobile, m_To.Mobile, true);
 
+                        if (!m_Valid || m_From.IsDisposed || m_To.IsDisposed)
+                        {
+                            return;
+                        }
+
                         if (!item.Deleted)
                         {
                             m_To.Mobile.AddToBackpack(item);
@@ -376,6 +381,11 @@ namespace Server
                         }
 
                         item.OnSecureTrade(m_To.Mobile, m_From.Mobile, m_From.Mobile, true);
+
+                        if (!m_Valid || m_From.IsDisposed || m_To.IsDisposed)
+                        {
+                            return;
+                        }
 
                         if (!item.Deleted)
                         {
