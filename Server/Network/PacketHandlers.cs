@@ -573,7 +573,7 @@ namespace Server.Network
                 Mobile m = World.FindMobile( serial );
 
                 if ( m != null && from.Map == m.Map && Utility.InUpdateRange( m.Location, from.Location ) && from.CanSee( m ) )
-                    m.OnHelpRequest( m );
+                    m.OnHelpRequest( from );
             }
         }
 
