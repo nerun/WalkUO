@@ -150,7 +150,7 @@ namespace Server
 
                     m_Owner = value;
 
-                    if( m_Owner != value )
+                    if( m_Owner != null )
                         m_Owner.AddSkillMod( this );
                 }
             }
