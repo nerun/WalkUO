@@ -4168,7 +4168,7 @@ namespace Server.Network
             else if ( count == 6 )
                 flags |= CharacterListFlags.SixthCharacterSlot; // 6th Character Slot
             else if ( a.Limit == 1 )
-                flags |= (CharacterListFlags.SlotLimit & CharacterListFlags.OneCharacterSlot); // Limit Characters & One Character
+                flags |= (CharacterListFlags.SlotLimit | CharacterListFlags.OneCharacterSlot); // Limit Characters & One Character
 
             m_Stream.Write( (int)(flags | m_AdditionalFlags) ); // Additional Flags
 
@@ -4263,7 +4263,7 @@ namespace Server.Network
             else if ( count == 6 )
                 flags |= CharacterListFlags.SixthCharacterSlot; // 6th Character Slot
             else if ( a.Limit == 1 )
-                flags |= (CharacterListFlags.SlotLimit & CharacterListFlags.OneCharacterSlot); // Limit Characters & One Character
+                flags |= (CharacterListFlags.SlotLimit | CharacterListFlags.OneCharacterSlot); // Limit Characters & One Character
 
             m_Stream.Write( (int)(flags | CharacterList.AdditionalFlags) ); // Additional Flags
 
