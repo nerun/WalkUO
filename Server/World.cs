@@ -803,6 +803,9 @@ namespace Server {
         }
 
         private static void SaveIndex<T>( List<T> list, string path ) where T : IEntityEntry {
+            if ( list.Count == 0 && !File.Exists( path ) )
+                return;
+
             if ( !Directory.Exists( "Saves/Mobiles/" ) )
                 Directory.CreateDirectory( "Saves/Mobiles/" );
 
