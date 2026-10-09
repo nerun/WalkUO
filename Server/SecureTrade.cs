@@ -33,6 +33,7 @@ namespace Server
         private readonly SecureTradeInfo m_To;
 
         private bool m_Valid;
+        private bool m_Completing;
 
         public SecureTrade(Mobile from, Mobile to)
         {
@@ -228,7 +229,7 @@ namespace Server
 
         public void Update()
         {
-            if (!m_Valid)
+            if (!m_Valid || m_Completing)
             {
                 return;
             }
@@ -335,66 +336,74 @@ namespace Server
                     return;
                 }
 
-                if (AccountGold.Enabled && m_From.Mobile.Account != null && m_To.Mobile.Account != null)
+                m_Completing = true;
+                try
                 {
-                    HandleAccountGoldTrade();
-                }
-
-                list = m_From.Container.Items;
-
-                for (var i = list.Count - 1; i >= 0; --i)
-                {
-                    if (i < list.Count)
+                    if (AccountGold.Enabled && m_From.Mobile.Account != null && m_To.Mobile.Account != null)
                     {
-                        var item = list[i];
+                        HandleAccountGoldTrade();
+                    }
 
-                        if (item == m_From.VirtualCheck)
+                    list = m_From.Container.Items;
+
+                    for (var i = list.Count - 1; i >= 0; --i)
+                    {
+                        if (i < list.Count)
                         {
-                            continue;
-                        }
+                            var item = list[i];
 
-                        item.OnSecureTrade(m_From.Mobile, m_To.Mobile, m_To.Mobile, true);
+                            if (item == m_From.VirtualCheck)
+                            {
+                                continue;
+                            }
 
-                        if (!m_Valid || m_From.IsDisposed || m_To.IsDisposed)
-                        {
-                            return;
-                        }
+                            item.OnSecureTrade(m_From.Mobile, m_To.Mobile, m_To.Mobile, true);
 
-                        if (!item.Deleted)
-                        {
-                            m_To.Mobile.AddToBackpack(item);
+                            if (!m_Valid || m_From.IsDisposed || m_To.IsDisposed)
+                            {
+                                return;
+                            }
+
+                            if (!item.Deleted)
+                            {
+                                m_To.Mobile.AddToBackpack(item);
+                            }
                         }
                     }
-                }
 
-                list = m_To.Container.Items;
+                    list = m_To.Container.Items;
 
-                for (var i = list.Count - 1; i >= 0; --i)
-                {
-                    if (i < list.Count)
+                    for (var i = list.Count - 1; i >= 0; --i)
                     {
-                        var item = list[i];
-
-                        if (item == m_To.VirtualCheck)
+                        if (i < list.Count)
                         {
-                            continue;
-                        }
+                            var item = list[i];
 
-                        item.OnSecureTrade(m_To.Mobile, m_From.Mobile, m_From.Mobile, true);
+                            if (item == m_To.VirtualCheck)
+                            {
+                                continue;
+                            }
 
-                        if (!m_Valid || m_From.IsDisposed || m_To.IsDisposed)
-                        {
-                            return;
-                        }
+                            item.OnSecureTrade(m_To.Mobile, m_From.Mobile, m_From.Mobile, true);
 
-                        if (!item.Deleted)
-                        {
-                            m_From.Mobile.AddToBackpack(item);
+                            if (!m_Valid || m_From.IsDisposed || m_To.IsDisposed)
+                            {
+                                return;
+                            }
+
+                            if (!item.Deleted)
+                            {
+                                m_From.Mobile.AddToBackpack(item);
+                            }
                         }
                     }
-                }
 
-                Close();
+                    Close();
+                }
+                finally
+                {
+                    m_Completing = false;
+                }
             }
             else if (!m_From.IsDisposed && !m_To.IsDisposed)
             {
