@@ -1213,7 +1213,9 @@ namespace Server.Network {
                     IAccount a = ns.m_Account;
 
                     if ( m != null ) {
-                        m.NetState = null;
+                        if ( m.NetState == ns )
+                            m.NetState = null;
+
                         ns.m_Mobile = null;
                     }
 
