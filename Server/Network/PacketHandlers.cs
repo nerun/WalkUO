@@ -1323,10 +1323,12 @@ namespace Server.Network
                         prof.Start();
                     }
 
-                    gump.OnResponse( state, new RelayInfo( buttonID, switches, textEntries ) );
-
-                    if ( prof != null ) {
-                        prof.Finish();
+                    try {
+                        gump.OnResponse( state, new RelayInfo( buttonID, switches, textEntries ) );
+                    } finally {
+                        if ( prof != null ) {
+                            prof.Finish();
+                        }
                     }
 
                     return;
