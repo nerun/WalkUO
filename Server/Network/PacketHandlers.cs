@@ -1565,7 +1565,10 @@ namespace Server.Network
 
         public static void PingReq( NetState state, PacketReader pvSrc )
         {
-            state.Send( PingAck.Instantiate( pvSrc.ReadByte() ) );
+            byte ping = pvSrc.ReadByte();
+
+            // Cached packets retain the compression mode of their first send.
+            state.Send( state.CompressionEnabled ? PingAck.Instantiate( ping ) : new PingAck( ping ) );
         }
 
         public static void SetUpdateRange( NetState state, PacketReader pvSrc )
