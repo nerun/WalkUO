@@ -73,9 +73,6 @@ namespace Server
         public DynamicSaveStrategy()
         {
             _decayBag = new ConcurrentBag<Item>();
-            _itemThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
-            _mobileThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
-            _guildThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
         }
 
         public override void Save(SaveMetrics metrics, bool permitBackgroundWrite)
@@ -84,9 +81,14 @@ namespace Server
 
             Task[] saveTasks = new Task[3];
             bool backgroundWriteScheduled = false;
+            Exception saveError = null;
 
             try
             {
+                _itemThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
+                _mobileThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
+                _guildThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
+
                 OpenFiles();
 
                 saveTasks[0] = SaveItems();
@@ -98,18 +100,18 @@ namespace Server
                 if (permitBackgroundWrite)
                 {
                     //This option makes it finish the writing to disk in the background, continuing even after Save() returns.
-                    Task.Factory.ContinueWhenAll(saveTasks, _ =>
-                        {
-                            CloseFiles();
-
-                            World.NotifyDiskWriteComplete();
-                        });
+                    Task.Factory.ContinueWhenAll(saveTasks, FinishBackgroundSave);
                     backgroundWriteScheduled = true;
                 }
                 else
                 {
                     Task.WaitAll(saveTasks);    //Waits for the completion of all of the tasks(committing to disk)
                 }
+            }
+            catch (Exception ex)
+            {
+                saveError = ex;
+                throw;
             }
             finally
             {
@@ -124,9 +126,34 @@ namespace Server
                         }
                     }
 
-                    CloseFiles();
+                    try { CloseFiles(); }
+                    catch
+                    {
+                        if (saveError == null)
+                            throw;
+                    }
                 }
             }
+        }
+
+        private void FinishBackgroundSave(Task[] tasks)
+        {
+            Exception error = null;
+
+            try { Task.WaitAll(tasks); }
+            catch (Exception ex) { error = ex; }
+
+            try { CloseFiles(); }
+            catch (Exception ex)
+            {
+                if (error == null)
+                    error = ex;
+            }
+
+            if (error != null)
+                World.NotifyDiskWriteFailed(error);
+            else
+                World.NotifyDiskWriteComplete();
         }
 
         private Task StartCommitTask(BlockingCollection<QueuedMemoryWriter> threadWriter, SequentialFileWriter data, SequentialFileWriter index)
@@ -147,7 +174,13 @@ namespace Server
                         break;
                     }
 
-                    writer.CommitTo(data, index);
+                    try { writer.CommitTo(data, index); }
+                    catch
+                    {
+                        try { writer.Close(); }
+                        catch { } // Preserve the original commit error.
+                        throw;
+                    }
                 }
             });
 
@@ -213,9 +246,17 @@ namespace Server
                 },
                 (writer) =>
                 {
-                    writer.Flush();
-
-                    _itemThreadWriters.Add(writer);
+                    try
+                    {
+                        writer.Flush();
+                        _itemThreadWriters.Add(writer);
+                    }
+                    catch
+                    {
+                        try { writer.Close(); }
+                        catch { } // Preserve the producer error.
+                        throw;
+                    }
                 });
         }
 
@@ -249,9 +290,17 @@ namespace Server
                 },
                 (writer) =>
                 {
-                    writer.Flush();
-
-                    _mobileThreadWriters.Add(writer);
+                    try
+                    {
+                        writer.Flush();
+                        _mobileThreadWriters.Add(writer);
+                    }
+                    catch
+                    {
+                        try { writer.Close(); }
+                        catch { } // Preserve the producer error.
+                        throw;
+                    }
                 });
         }
 
@@ -285,9 +334,17 @@ namespace Server
                 },
                 (writer) =>
                 {
-                    writer.Flush();
-
-                    _guildThreadWriters.Add(writer);
+                    try
+                    {
+                        writer.Flush();
+                        _guildThreadWriters.Add(writer);
+                    }
+                    catch
+                    {
+                        try { writer.Close(); }
+                        catch { } // Preserve the producer error.
+                        throw;
+                    }
                 });
         }
 
@@ -329,6 +386,38 @@ namespace Server
                 if (file != null)
                 {
                     try { file.Close(); }
+                    catch (Exception ex)
+                    {
+                        if (error == null)
+                            error = ExceptionDispatchInfo.Capture(ex);
+                    }
+                }
+            }
+
+            foreach (BlockingCollection<QueuedMemoryWriter> writers in new BlockingCollection<QueuedMemoryWriter>[] { _itemThreadWriters, _mobileThreadWriters, _guildThreadWriters })
+            {
+                if (writers != null)
+                {
+                    QueuedMemoryWriter writer;
+                    try
+                    {
+                        while (writers.TryTake(out writer))
+                        {
+                            try { writer.Close(); }
+                            catch (Exception ex)
+                            {
+                                if (error == null)
+                                    error = ExceptionDispatchInfo.Capture(ex);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (error == null)
+                            error = ExceptionDispatchInfo.Capture(ex);
+                    }
+
+                    try { writers.Dispose(); }
                     catch (Exception ex)
                     {
                         if (error == null)

@@ -698,6 +698,8 @@ namespace Server.Network {
                 bool result = false;
 
                 do {
+                    result = false;
+
                     lock ( m_AsyncLock ) {
                         if ( ( m_AsyncState & ( AsyncState.Pending | AsyncState.Paused ) ) == 0 ) {
                             m_AsyncState |= AsyncState.Pending;
@@ -865,6 +867,7 @@ namespace Server.Network {
                     _sending = true;
                     m_SendEventArgs.SetBuffer( gram.Buffer, 0, gram.Length );
                     Send_Start();
+                    return !m_Disposing;
                 }
             }
 

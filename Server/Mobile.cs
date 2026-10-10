@@ -150,7 +150,7 @@ namespace Server
 
                     m_Owner = value;
 
-                    if( m_Owner != value )
+                    if( m_Owner != null )
                         m_Owner.AddSkillMod( this );
                 }
             }
@@ -2280,24 +2280,24 @@ namespace Server
 
         public double GetDistanceToSqrt( Point3D p )
         {
-            int xDelta = m_Location.m_X - p.m_X;
-            int yDelta = m_Location.m_Y - p.m_Y;
+            double xDelta = (double)m_Location.m_X - p.m_X;
+            double yDelta = (double)m_Location.m_Y - p.m_Y;
 
             return Math.Sqrt( (xDelta * xDelta) + (yDelta * yDelta) );
         }
 
         public double GetDistanceToSqrt( Mobile m )
         {
-            int xDelta = m_Location.m_X - m.m_Location.m_X;
-            int yDelta = m_Location.m_Y - m.m_Location.m_Y;
+            double xDelta = (double)m_Location.m_X - m.m_Location.m_X;
+            double yDelta = (double)m_Location.m_Y - m.m_Location.m_Y;
 
             return Math.Sqrt( (xDelta * xDelta) + (yDelta * yDelta) );
         }
 
         public double GetDistanceToSqrt( IPoint2D p )
         {
-            int xDelta = m_Location.m_X - p.X;
-            int yDelta = m_Location.m_Y - p.Y;
+            double xDelta = (double)m_Location.m_X - p.X;
+            double yDelta = (double)m_Location.m_Y - p.Y;
 
             return Math.Sqrt( (xDelta * xDelta) + (yDelta * yDelta) );
         }
@@ -5276,26 +5276,27 @@ namespace Server
             Packet pNew = null;
             Packet pOld = null;
 
-            foreach( NetState ns in eable ) {
-                if( ns.Mobile.CanSee( this ) ) {
-                    if( ns.DamagePacket ) {
-                        if( pNew == null )
-                            pNew = Packet.Acquire( new DamagePacket( this, amount ) );
+            try {
+                foreach( NetState ns in eable ) {
+                    if( ns.Mobile.CanSee( this ) ) {
+                        if( ns.DamagePacket ) {
+                            if( pNew == null )
+                                pNew = Packet.Acquire( new DamagePacket( this, amount ) );
 
-                        ns.Send( pNew );
-                    } else {
-                        if( pOld == null )
-                            pOld = Packet.Acquire( new DamagePacketOld( this, amount ) );
+                            ns.Send( pNew );
+                        } else {
+                            if( pOld == null )
+                                pOld = Packet.Acquire( new DamagePacketOld( this, amount ) );
 
-                        ns.Send( pOld );
+                            ns.Send( pOld );
+                        }
                     }
                 }
+            } finally {
+                Packet.Release( pNew );
+                Packet.Release( pOld );
+                eable.Free();
             }
-
-            Packet.Release( pNew );
-            Packet.Release( pOld );
-
-            eable.Free();
         }
 
         public static bool m_DefaultShowVisibleDamage, m_DefaultCanSeeVisibleDamage;

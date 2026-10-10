@@ -196,6 +196,7 @@ namespace Server
     public class BinaryFileWriter : GenericWriter
     {
         private bool PrefixStrings;
+        private bool m_Closed;
         private Stream m_File;
 
         protected virtual int BufferSize
@@ -232,9 +233,8 @@ namespace Server
         {
             if( m_Index > 0 )
             {
-                m_Position += m_Index;
-
                 m_File.Write( m_Buffer, 0, m_Index );
+                m_Position += m_Index;
                 m_Index = 0;
             }
         }
@@ -262,6 +262,7 @@ namespace Server
 
         public override void Close()
         {
+            m_Closed = true;
             try {
                 if( m_Index > 0 )
                     Flush();
@@ -270,8 +271,15 @@ namespace Server
             }
         }
 
+        private void EnsureOpen()
+        {
+            if( m_Closed )
+                throw new ObjectDisposedException( "BinaryFileWriter" );
+        }
+
         public override void WriteEncodedInt( int value )
         {
+            EnsureOpen();
             uint v = (uint)value;
 
             while( v >= 0x80 )
@@ -343,6 +351,7 @@ namespace Server
 
         public override void Write( string value )
         {
+            EnsureOpen();
             if( PrefixStrings )
             {
                 if( value == null )
@@ -412,6 +421,7 @@ namespace Server
 
         public override void Write( long value )
         {
+            EnsureOpen();
             if( (m_Index + 8) > m_Buffer.Length )
                 Flush();
 
@@ -428,6 +438,7 @@ namespace Server
 
         public override void Write( ulong value )
         {
+            EnsureOpen();
             if( (m_Index + 8) > m_Buffer.Length )
                 Flush();
 
@@ -444,6 +455,7 @@ namespace Server
 
         public override void Write( int value )
         {
+            EnsureOpen();
             if( (m_Index + 4) > m_Buffer.Length )
                 Flush();
 
@@ -456,6 +468,7 @@ namespace Server
 
         public override void Write( uint value )
         {
+            EnsureOpen();
             if( (m_Index + 4) > m_Buffer.Length )
                 Flush();
 
@@ -468,6 +481,7 @@ namespace Server
 
         public override void Write( short value )
         {
+            EnsureOpen();
             if( (m_Index + 2) > m_Buffer.Length )
                 Flush();
 
@@ -478,6 +492,7 @@ namespace Server
 
         public override void Write( ushort value )
         {
+            EnsureOpen();
             if( (m_Index + 2) > m_Buffer.Length )
                 Flush();
 
@@ -488,6 +503,7 @@ namespace Server
 
         public unsafe override void Write( double value )
         {
+            EnsureOpen();
             if( (m_Index + 8) > m_Buffer.Length )
                 Flush();
 
@@ -505,6 +521,7 @@ namespace Server
 
         public unsafe override void Write( float value )
         {
+            EnsureOpen();
             if( (m_Index + 4) > m_Buffer.Length )
                 Flush();
 
@@ -524,6 +541,7 @@ namespace Server
 
         public override void Write( char value )
         {
+            EnsureOpen();
             if( (m_Index + 8) > m_Buffer.Length )
                 Flush();
 
@@ -535,6 +553,7 @@ namespace Server
 
         public override void Write( byte value )
         {
+            EnsureOpen();
             if( (m_Index + 1) > m_Buffer.Length )
                 Flush();
 
@@ -543,6 +562,7 @@ namespace Server
 
         public override void Write( sbyte value )
         {
+            EnsureOpen();
             if( (m_Index + 1) > m_Buffer.Length )
                 Flush();
 
@@ -551,6 +571,7 @@ namespace Server
 
         public override void Write( bool value )
         {
+            EnsureOpen();
             if( (m_Index + 1) > m_Buffer.Length )
                 Flush();
 
@@ -644,6 +665,7 @@ namespace Server
 
         public override void WriteMobileList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -668,6 +690,7 @@ namespace Server
 
         public override void WriteItemList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -692,6 +715,7 @@ namespace Server
 
         public override void WriteGuildList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -716,6 +740,7 @@ namespace Server
 
         public override void Write( List<Item> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -740,6 +765,7 @@ namespace Server
 
         public override void WriteItemList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -764,6 +790,7 @@ namespace Server
 
         public override void Write( HashSet<Item> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( item => item.Deleted );
@@ -784,6 +811,7 @@ namespace Server
 
         public override void WriteItemSet<T>( HashSet<T> set, bool tidy ) 
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( item => item.Deleted );
@@ -804,6 +832,7 @@ namespace Server
 
         public override void Write( List<Mobile> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -828,6 +857,7 @@ namespace Server
 
         public override void WriteMobileList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -852,6 +882,7 @@ namespace Server
 
         public override void Write( HashSet<Mobile> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( mobile => mobile.Deleted );
@@ -872,6 +903,7 @@ namespace Server
 
         public override void WriteMobileSet<T>( HashSet<T> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( mob => mob.Deleted );
@@ -892,6 +924,7 @@ namespace Server
 
         public override void Write( List<BaseGuild> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -916,6 +949,7 @@ namespace Server
 
         public override void WriteGuildList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -940,6 +974,7 @@ namespace Server
 
         public override void Write( HashSet<BaseGuild> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( guild => guild.Disbanded );
@@ -960,6 +995,7 @@ namespace Server
 
         public override void WriteGuildSet<T>( HashSet<T> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( guild => guild.Disbanded );
@@ -1000,11 +1036,13 @@ namespace Server
 
         public override int PeekInt()
         {
-            var peek = m_File.ReadInt32();
+            long position = m_File.BaseStream.Position;
 
-            m_File.BaseStream.Seek( -4, SeekOrigin.Current );
-
-            return peek;
+            try {
+                return m_File.ReadInt32();
+            } finally {
+                m_File.BaseStream.Seek( position, SeekOrigin.Begin );
+            }
         }
 
         public override string ReadString()
@@ -1042,6 +1080,9 @@ namespace Server
             do
             {
                 b = m_File.ReadByte();
+                if( shift == 28 && (b & 0xF0) != 0 )
+                    throw new FormatException( "Invalid encoded integer." );
+
                 v |= (b & 0x7F) << shift;
                 shift += 7;
             } while( b >= 0x80 );
@@ -1187,9 +1228,20 @@ namespace Server
             return ReadGuild() as T;
         }
 
-        public override ArrayList ReadItemList()
+        private int ReadCollectionCount()
         {
             int count = ReadInt();
+            Stream stream = m_File.BaseStream;
+
+            if( count > 0 && stream.CanSeek && count > (stream.Length - stream.Position) / 4 )
+                throw new EndOfStreamException();
+
+            return count;
+        }
+
+        public override ArrayList ReadItemList()
+        {
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 ArrayList list = new ArrayList( count );
@@ -1210,7 +1262,7 @@ namespace Server
 
         public override ArrayList ReadMobileList()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 ArrayList list = new ArrayList( count );
@@ -1231,7 +1283,7 @@ namespace Server
 
         public override ArrayList ReadGuildList()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 ArrayList list = new ArrayList( count );
@@ -1257,7 +1309,7 @@ namespace Server
 
         public override List<T> ReadStrongItemList<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 List<T> list = new List<T>( count );
@@ -1283,7 +1335,7 @@ namespace Server
 
         public override HashSet<T> ReadItemSet<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if( count > 0 )
             {
@@ -1314,7 +1366,7 @@ namespace Server
 
         public override List<T> ReadStrongMobileList<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 List<T> list = new List<T>( count );
@@ -1340,7 +1392,7 @@ namespace Server
 
         public override HashSet<T> ReadMobileSet<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if( count > 0 )
             {
@@ -1371,7 +1423,7 @@ namespace Server
 
         public override List<T> ReadStrongGuildList<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if ( count > 0 ) {
                 List<T> list = new List<T>( count );
@@ -1397,7 +1449,7 @@ namespace Server
 
         public override HashSet<T> ReadGuildSet<T>()
         {
-            int count = ReadInt();
+            int count = ReadCollectionCount();
 
             if( count > 0 )
             {
@@ -1428,7 +1480,7 @@ namespace Server
 
         public override bool End()
         {
-            return m_File.PeekChar() == -1;
+            return m_File.BaseStream.Position >= m_File.BaseStream.Length;
         }
     }
 
@@ -1462,30 +1514,34 @@ namespace Server
             m_WriteQueue = new Queue<MemoryStream>();
             BufferSize = buffSize;
 
-            m_File = new FileStream( filename, FileMode.Create, FileAccess.Write, FileShare.None );
             m_Mem = new MemoryStream( BufferSize + 1024 );
             m_Bin = new BinaryWriter( m_Mem, Utility.UTF8WithEncoding );
+            m_File = new FileStream( filename, FileMode.Create, FileAccess.Write, FileShare.None );
         }
 
         private void Enqueue( MemoryStream mem )
         {
             lock (m_WriteQueue)
             {
-                m_WriteQueue.Enqueue( mem );
-
                 if( m_WorkerThread == null )
                 {
-                    m_WorkerThread = new Thread( new ThreadStart( new WorkerThread( this ).Worker ) );
-                    m_WorkerThread.Priority = ThreadPriority.BelowNormal;
-                    Interlocked.Increment( ref AsyncWriter.m_ThreadCount );
+                    try {
+                        m_WorkerThread = new Thread( new ThreadStart( new WorkerThread( this ).Worker ) );
+                        m_WorkerThread.Priority = ThreadPriority.BelowNormal;
+                        Interlocked.Increment( ref AsyncWriter.m_ThreadCount );
 
-                    try { m_WorkerThread.Start(); }
-                    catch {
+                        try { m_WorkerThread.Start(); }
+                        catch {
+                            Interlocked.Decrement( ref AsyncWriter.m_ThreadCount );
+                            throw;
+                        }
+                    } catch {
                         m_WorkerThread = null;
-                        Interlocked.Decrement( ref AsyncWriter.m_ThreadCount );
                         throw;
                     }
                 }
+
+                m_WriteQueue.Enqueue( mem );
             }
         }
 
@@ -1531,6 +1587,12 @@ namespace Server
             }
         }
 
+        private void EnsureOpen()
+        {
+            if( m_Closed )
+                throw new ObjectDisposedException( "AsyncWriter" );
+        }
+
         private void OnWrite()
         {
             long curlen = m_Mem.Length;
@@ -1553,14 +1615,27 @@ namespace Server
             }
             set
             {
+                EnsureOpen();
+                BinaryWriter bin = new BinaryWriter( value, Utility.UTF8WithEncoding );
+                long length = value.Length;
+                value.Seek( 0, SeekOrigin.End );
+
+                if( value == m_Mem )
+                {
+                    m_CurPos += length - m_LastPos;
+                    m_LastPos = length;
+                    return;
+                }
+
+                m_CurPos += m_Mem.Length - m_LastPos;
+
                 if( m_Mem.Length > 0 )
                     Enqueue( m_Mem );
 
                 m_Mem = value;
-                m_Bin = new BinaryWriter( m_Mem, Utility.UTF8WithEncoding );
-                m_LastPos = 0;
-                m_CurPos = m_Mem.Length;
-                m_Mem.Seek( 0, SeekOrigin.End );
+                m_Bin = bin;
+                m_LastPos = length;
+                m_CurPos += m_LastPos;
             }
         }
 
@@ -1568,8 +1643,15 @@ namespace Server
         {
             lock (m_WriteQueue)
             {
+                if( m_Closed )
+                    return;
+
                 m_Closed = true;
-                Enqueue( m_Mem );
+                try { Enqueue( m_Mem ); }
+                catch {
+                    m_Closed = false;
+                    throw;
+                }
             }
         }
 
@@ -1583,12 +1665,14 @@ namespace Server
 
         public override void Write( IPAddress value )
         {
+            EnsureOpen();
             m_Bin.Write( Utility.GetLongAddressValue( value ) );
             OnWrite();
         }
 
         public override void Write( string value )
         {
+            EnsureOpen();
             if( PrefixStrings )
             {
                 if( value == null )
@@ -1623,12 +1707,14 @@ namespace Server
 
         public override void Write( DateTime value )
         {
+            EnsureOpen();
             m_Bin.Write( value.Ticks );
             OnWrite();
         }
 
         public override void Write( DateTimeOffset value )
         {
+            EnsureOpen();
             m_Bin.Write( value.Ticks );
             m_Bin.Write( value.Offset.Ticks );
             OnWrite();
@@ -1636,30 +1722,35 @@ namespace Server
 
         public override void Write( TimeSpan value )
         {
+            EnsureOpen();
             m_Bin.Write( value.Ticks );
             OnWrite();
         }
 
         public override void Write( decimal value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( long value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( ulong value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void WriteEncodedInt( int value )
         {
+            EnsureOpen();
             uint v = (uint)value;
 
             while( v >= 0x80 )
@@ -1674,60 +1765,70 @@ namespace Server
 
         public override void Write( int value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( uint value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( short value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( ushort value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( double value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( float value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( char value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( byte value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( sbyte value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
 
         public override void Write( bool value )
         {
+            EnsureOpen();
             m_Bin.Write( value );
             OnWrite();
         }
@@ -1819,6 +1920,7 @@ namespace Server
 
         public override void WriteMobileList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -1843,6 +1945,7 @@ namespace Server
 
         public override void WriteItemList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -1867,6 +1970,7 @@ namespace Server
 
         public override void WriteGuildList( ArrayList list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -1891,6 +1995,7 @@ namespace Server
 
         public override void Write( List<Item> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -1914,6 +2019,7 @@ namespace Server
         }
         public override void WriteItemList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -1938,6 +2044,7 @@ namespace Server
 
         public override void Write( HashSet<Item> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( item => item.Deleted );
@@ -1958,6 +2065,7 @@ namespace Server
 
         public override void WriteItemSet<T>( HashSet<T> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( item => item.Deleted );
@@ -1978,6 +2086,7 @@ namespace Server
 
         public override void Write( List<Mobile> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -2002,6 +2111,7 @@ namespace Server
 
         public override void WriteMobileList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -2026,6 +2136,7 @@ namespace Server
 
         public override void Write( HashSet<Mobile> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( mobile => mobile.Deleted );
@@ -2046,6 +2157,7 @@ namespace Server
 
         public override void WriteMobileSet<T>( HashSet<T> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( mob => mob.Deleted );
@@ -2066,6 +2178,7 @@ namespace Server
 
         public override void Write( List<BaseGuild> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -2090,6 +2203,7 @@ namespace Server
 
         public override void WriteGuildList<T>( List<T> list, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 for( int i = 0; i < list.Count; )
@@ -2114,6 +2228,7 @@ namespace Server
 
         public override void Write( HashSet<BaseGuild> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( guild => guild.Disbanded );
@@ -2134,6 +2249,7 @@ namespace Server
 
         public override void WriteGuildSet<T>( HashSet<T> set, bool tidy )
         {
+            EnsureOpen();
             if( tidy )
             {
                 set.RemoveWhere( guild => guild.Disbanded );

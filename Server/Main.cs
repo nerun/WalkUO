@@ -364,7 +364,7 @@ namespace Server
         private static bool m_Closing;
         public static bool Closing { get { return m_Closing; } }
 
-        private static int m_CycleIndex = 1;
+        private static long m_CycleIndex = 1;
         private static readonly float[] m_CyclesPerSecond = new float[100];
 
         public static float CyclesPerSecond { get { return m_CyclesPerSecond[(m_CycleIndex - 1) % m_CyclesPerSecond.Length]; } }
@@ -383,10 +383,13 @@ namespace Server
         {
             get
             {
-                int count = m_CycleIndex;
+                long count = m_CycleIndex;
 
-                if ( count <= 0 )
+                if ( count <= 1 )
                     return 0.0;
+
+                --count;
+                int start = count < m_CyclesPerSecond.Length ? 1 : 0;
 
                 if ( count > m_CyclesPerSecond.Length )
                     count = m_CyclesPerSecond.Length;
@@ -395,7 +398,7 @@ namespace Server
 
                 for ( int i = 0; i < count; i++ )
                 {
-                    total += m_CyclesPerSecond[i];
+                    total += m_CyclesPerSecond[i + start];
                 }
 
                 return total / count;
@@ -791,6 +794,7 @@ namespace Server
         private StreamWriter _Writer;
         private readonly object _SyncRoot = new object();
         private bool _NewLine;
+        private bool _Disposed;
 
         public string FileName { get; private set; }
 
@@ -837,6 +841,9 @@ namespace Server
         {
             lock ( _SyncRoot )
             {
+                if ( _Disposed )
+                    throw new ObjectDisposedException( "FileLogger" );
+
                 StreamWriter writer = GetWriter();
 
                 if ( _NewLine )
@@ -864,23 +871,74 @@ namespace Server
             );
         }
 
+        private static void WriteContent( StreamWriter writer, string str )
+        {
+            if ( str == null )
+                return;
+
+            int start = 0;
+            int newline;
+
+            while ( (newline = str.IndexOf( '\n', start )) >= 0 )
+            {
+                writer.Write( str.Substring( start, newline - start + 1 ) );
+                start = newline + 1;
+
+                if ( start < str.Length )
+                    writer.Write( DateTime.UtcNow.ToString( DateFormat ) );
+            }
+
+            if ( start < str.Length )
+                writer.Write( str.Substring( start ) );
+        }
+
         public override void Write( string str )
         {
+            if ( str == null )
+                return;
+
             WriteInternal(
-                writer => writer.Write( str ),
-                str.IndexOf( '\n' ) >= 0
+                writer => WriteContent( writer, str ),
+                str.Length > 0 && str[str.Length - 1] == '\n'
             );
         }
 
         public override void WriteLine( string line )
         {
             WriteInternal(
-                writer => writer.WriteLine( line ),
+                writer =>
+                {
+                    WriteContent( writer, line );
+
+                    if ( line != null && line.Length > 0 && line[line.Length - 1] == '\n' )
+                        writer.Write( DateTime.UtcNow.ToString( DateFormat ) );
+
+                    writer.WriteLine();
+                },
                 true
             );
         }
 
         public override Encoding Encoding { get { return Encoding.Default; } }
+
+        protected override void Dispose( bool disposing )
+        {
+            try
+            {
+                if ( disposing )
+                {
+                    lock ( _SyncRoot )
+                    {
+                        _Disposed = true;
+                        CloseWriter();
+                    }
+                }
+            }
+            finally
+            {
+                base.Dispose( disposing );
+            }
+        }
 
         public void CloseWriter()
         {
@@ -888,9 +946,24 @@ namespace Server
             {
                 if ( _Writer != null )
                 {
-                    _Writer.Flush();
-                    _Writer.Close();
+                    StreamWriter writer = _Writer;
                     _Writer = null;
+                    bool flushed = false;
+
+                    try
+                    {
+                        writer.Flush();
+                        flushed = true;
+                    }
+                    finally
+                    {
+                        try { writer.Close(); }
+                        catch
+                        {
+                            if ( flushed )
+                                throw;
+                        }
+                    }
                 }
             }
         }
@@ -930,7 +1003,7 @@ namespace Server
         {
             lock (_Streams)
             {
-                foreach (var t in _Streams)
+                foreach (var t in _Streams.ToArray())
                 {
                     t.Write(ch);
                 }
@@ -941,7 +1014,7 @@ namespace Server
         {
             lock (_Streams)
             {
-                foreach (var t in _Streams)
+                foreach (var t in _Streams.ToArray())
                 {
                     t.WriteLine(line);
                 }
@@ -951,6 +1024,17 @@ namespace Server
         public override void WriteLine(string line, params object[] args)
         {
             WriteLine(String.Format(line, args));
+        }
+
+        public override void Flush()
+        {
+            lock (_Streams)
+            {
+                foreach (var t in _Streams.ToArray())
+                {
+                    t.Flush();
+                }
+            }
         }
 
         public override Encoding Encoding { get { return Encoding.Default; } }

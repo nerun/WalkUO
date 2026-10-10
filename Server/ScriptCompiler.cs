@@ -128,11 +128,27 @@ namespace Server
                     {
                         fileInfo = new FileInfo( scriptFile );
 
+                        bin.Write( fileInfo.FullName );
                         bin.Write( fileInfo.LastWriteTimeUtc.Ticks );
                     }
 
                     bin.Write( debug );
+                    bin.Write( Core.HaltOnWarning );
                     bin.Write( Core.Version.ToString() );
+                    bin.Write( GetCompilerOptions( debug ) );
+
+                    string compiledPath = Path.GetFullPath( compiledFile );
+
+                    foreach( string reference in GetReferenceAssemblies() )
+                    {
+                        fileInfo = new FileInfo( reference );
+
+                        if( fileInfo.FullName == compiledPath )
+                            continue;
+
+                        bin.Write( fileInfo.FullName );
+                        bin.Write( fileInfo.LastWriteTimeUtc.Ticks );
+                    }
 
                     ms.Position = 0;
 
@@ -237,8 +253,6 @@ namespace Server
 #endif
                 CompilerResults results = provider.CompileAssemblyFromFile( parms, files );
 
-                m_AdditionalReferences.Add( path );
-
                 Display( results );
 
 #if !MONO
@@ -250,7 +264,7 @@ namespace Server
 #else
                 if( results.Errors.Count > 0 ) {
                     foreach( CompilerError err in results.Errors ) {
-                        if ( !err.IsWarning ) {
+                        if ( !err.IsWarning || Core.HaltOnWarning ) {
                             assembly = null;
                             return false;
                         }
@@ -279,6 +293,7 @@ namespace Server
                 }
 
                 assembly = results.CompiledAssembly;
+                m_AdditionalReferences.Add( path );
                 return true;
             }
         }
@@ -372,7 +387,6 @@ namespace Server
                     parms.WarningLevel = 4;
 
                 CompilerResults results = provider.CompileAssemblyFromFile( parms, files );
-                m_AdditionalReferences.Add( path );
 
                 Display( results );
 
@@ -402,6 +416,7 @@ namespace Server
                 }
 
                 assembly = results.CompiledAssembly;
+                m_AdditionalReferences.Add( path );
                 return true;
             }
         }
@@ -413,8 +428,15 @@ namespace Server
                 Dictionary<string, List<CompilerError>> errors = new Dictionary<string, List<CompilerError>>( results.Errors.Count, StringComparer.OrdinalIgnoreCase );
                 Dictionary<string, List<CompilerError>> warnings = new Dictionary<string, List<CompilerError>>( results.Errors.Count, StringComparer.OrdinalIgnoreCase );
 
+                int errorCount = 0, warningCount = 0;
+
                 foreach( CompilerError e in results.Errors )
                 {
+                    if( e.IsWarning )
+                        ++warningCount;
+                    else
+                        ++errorCount;
+
                     string file = e.FileName;
 
                     // Ridiculous. FileName is null if the warning/error is internally generated in csc.
@@ -434,10 +456,10 @@ namespace Server
                     list.Add( e );
                 }
 
-                if( errors.Count > 0 )
-                    Console.WriteLine( "failed ({0} errors, {1} warnings)", errors.Count, warnings.Count );
+                if( errorCount > 0 )
+                    Console.WriteLine( "failed ({0} errors, {1} warnings)", errorCount, warningCount );
                 else
-                    Console.WriteLine( "done ({0} errors, {1} warnings)", errors.Count, warnings.Count );
+                    Console.WriteLine( "done ({0} errors, {1} warnings)", errorCount, warningCount );
 
                 string scriptRoot = Path.GetFullPath( Path.Combine( Core.BaseDirectory, "Scripts" + Path.DirectorySeparatorChar ) );
                 Uri scriptRootUri = new Uri( scriptRoot );
@@ -504,6 +526,9 @@ namespace Server
 
             for( int i = 2; File.Exists( path ) && i <= 1000; ++i )
                 path = Path.Combine( Core.BaseDirectory, String.Format( "Scripts/Output/{0}.{1}.dll", name, i ) );
+
+            if( File.Exists( path ) )
+                throw new IOException( "No unused script assembly path is available." );
 
             return path;
         }

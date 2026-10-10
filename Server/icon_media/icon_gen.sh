@@ -1,16 +1,18 @@
 #!/bin/bash
+set -e
+cd -- "$(dirname -- "$0")"
+
 ICO="walkuo.ico"
-if [[ -f ../"$ICO" ]]; then
-    rm ../"$ICO"
-fi
 IMG="walkuo-512.png"
-convert "$IMG" -resize 256x256 icon-256.png
-convert "$IMG" -resize 128x128 icon-128.png
-convert "$IMG" -resize 64x64   icon-64.png
-convert "$IMG" -resize 48x48   icon-48.png
-convert "$IMG" -resize 32x32   icon-32.png
-convert "$IMG" -resize 24x24   icon-24.png
-convert "$IMG" -resize 16x16   icon-16.png
-convert icon-256.png icon-128.png icon-64.png icon-48.png icon-32.png icon-24.png icon-16.png "$ICO"
-rm icon-*
-mv "$ICO" ../
+WORKDIR=$(mktemp -d "./.icon-gen.XXXXXX")
+trap 'rm -rf -- "$WORKDIR"' EXIT
+
+ICONS=()
+for SIZE in 256 128 64 48 32 24 16; do
+    ICON="$WORKDIR/icon-$SIZE.png"
+    convert "$IMG" -resize "${SIZE}x${SIZE}" "$ICON"
+    ICONS+=("$ICON")
+done
+
+convert "${ICONS[@]}" "$WORKDIR/$ICO"
+mv -fT -- "$WORKDIR/$ICO" "../$ICO"

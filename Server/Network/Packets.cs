@@ -255,7 +255,7 @@ namespace Server.Network
     {
         public MapPatches() : base( 0xBF )
         {
-            EnsureCapacity( 9 + (3 * 8) );
+            EnsureCapacity( 9 + (4 * 8) );
 
             m_Stream.Write( (short) 0x0018 );
 
@@ -563,7 +563,7 @@ namespace Server.Network
         {
             EquipInfoAttribute[] attrs = info.Attributes;
 
-            this.EnsureCapacity( 17 + (info.Crafter == null ? 0 : 6 + info.Crafter.Name == null ? 0 : info.Crafter.Name.Length) + (info.Unidentified ? 4 : 0) + (attrs.Length * 6) );
+            this.EnsureCapacity( 17 + (info.Crafter == null ? 0 : 6 + (info.Crafter.Name == null ? 0 : info.Crafter.Name.Length)) + (info.Unidentified ? 4 : 0) + (attrs.Length * 6) );
 
             m_Stream.Write( (short) 0x10 );
             m_Stream.Write( (int) item.Serial );
@@ -2477,23 +2477,28 @@ namespace Server.Network
 
         public void Flush()
         {
-            EnsureCapacity( 28 + (int) m_Layout.Length + (int) m_Strings.Length );
+            try
+            {
+                EnsureCapacity( 28 + (int) m_Layout.Length + (int) m_Strings.Length );
 
-            m_Stream.Write( (int) m_Gump.Serial );
-            m_Stream.Write( (int) m_Gump.TypeID );
-            m_Stream.Write( (int) m_Gump.X );
-            m_Stream.Write( (int) m_Gump.Y );
+                m_Stream.Write( (int) m_Gump.Serial );
+                m_Stream.Write( (int) m_Gump.TypeID );
+                m_Stream.Write( (int) m_Gump.X );
+                m_Stream.Write( (int) m_Gump.Y );
 
-            // Note: layout MUST be null terminated (don't listen to krrios)
-            m_Layout.Write( (byte) 0 );
-            WritePacked( m_Layout );
+                // Note: layout MUST be null terminated (don't listen to krrios)
+                m_Layout.Write( (byte) 0 );
+                WritePacked( m_Layout );
 
-            m_Stream.Write( (int) m_StringCount );
+                m_Stream.Write( (int) m_StringCount );
 
-            WritePacked( m_Strings );
-
-            PacketWriter.ReleaseInstance( m_Layout );
-            PacketWriter.ReleaseInstance( m_Strings );
+                WritePacked( m_Strings );
+            }
+            finally
+            {
+                PacketWriter.ReleaseInstance( m_Layout );
+                PacketWriter.ReleaseInstance( m_Strings );
+            }
         }
 
         private const int GumpBufferSize = 0x5000;
@@ -2519,22 +2524,30 @@ namespace Server.Network
             lock (m_PackBuffers)
                 m_PackBuffer = m_PackBuffers.AcquireBuffer();
 
-            if (m_PackBuffer.Length < wantLength)
+            try
             {
-                Console.WriteLine("Notice: DisplayGumpPacked creating new {0} byte buffer", wantLength);
-                m_PackBuffer = new byte[wantLength];
+                if (m_PackBuffer.Length < wantLength)
+                {
+                    Console.WriteLine("Notice: DisplayGumpPacked creating new {0} byte buffer", wantLength);
+                    m_PackBuffer = new byte[wantLength];
+                }
+
+                int packLength = m_PackBuffer.Length;
+
+                ZLibError error = Compression.Pack( m_PackBuffer, ref packLength, buffer, length, ZLibQuality.Default );
+
+                if (error != ZLibError.Okay)
+                    throw new InvalidOperationException("Gump compression failed: " + error);
+
+                m_Stream.Write( (int) ( 4 + packLength ) );
+                m_Stream.Write( (int) length );
+                m_Stream.Write( m_PackBuffer, 0, packLength );
             }
-
-            int packLength = m_PackBuffer.Length;
-
-            Compression.Pack( m_PackBuffer, ref packLength, buffer, length, ZLibQuality.Default );
-
-            m_Stream.Write( (int) ( 4 + packLength ) );
-            m_Stream.Write( (int) length );
-            m_Stream.Write( m_PackBuffer, 0, packLength );
-
-            lock (m_PackBuffers)
-                m_PackBuffers.ReleaseBuffer(m_PackBuffer);
+            finally
+            {
+                lock (m_PackBuffers)
+                    m_PackBuffers.ReleaseBuffer(m_PackBuffer);
+            }
         }
     }
 
@@ -4168,7 +4181,7 @@ namespace Server.Network
             else if ( count == 6 )
                 flags |= CharacterListFlags.SixthCharacterSlot; // 6th Character Slot
             else if ( a.Limit == 1 )
-                flags |= (CharacterListFlags.SlotLimit & CharacterListFlags.OneCharacterSlot); // Limit Characters & One Character
+                flags |= (CharacterListFlags.SlotLimit | CharacterListFlags.OneCharacterSlot); // Limit Characters & One Character
 
             m_Stream.Write( (int)(flags | m_AdditionalFlags) ); // Additional Flags
 
@@ -4263,7 +4276,7 @@ namespace Server.Network
             else if ( count == 6 )
                 flags |= CharacterListFlags.SixthCharacterSlot; // 6th Character Slot
             else if ( a.Limit == 1 )
-                flags |= (CharacterListFlags.SlotLimit & CharacterListFlags.OneCharacterSlot); // Limit Characters & One Character
+                flags |= (CharacterListFlags.SlotLimit | CharacterListFlags.OneCharacterSlot); // Limit Characters & One Character
 
             m_Stream.Write( (int)(flags | CharacterList.AdditionalFlags) ); // Additional Flags
 

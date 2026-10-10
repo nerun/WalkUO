@@ -3408,29 +3408,33 @@ namespace Server
 
                 IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(worldLoc, GetMaxUpdateRange());
 
-                foreach ( NetState state in eable )
+                try
                 {
-                    Mobile m = state.Mobile;
-
-                    if ( m.CanSee( this ) && m.InRange( worldLoc, GetUpdateRange( m ) ) )
+                    foreach ( NetState state in eable )
                     {
-                        if ( p == null )
+                        Mobile m = state.Mobile;
+
+                        if ( m.CanSee( this ) && m.InRange( worldLoc, GetUpdateRange( m ) ) )
                         {
-                            if ( ascii )
-                                p = new AsciiMessage( m_Serial, m_ItemID, type, hue, 3, this.Name, text );
-                            else
-                                p = new UnicodeMessage( m_Serial, m_ItemID, type, hue, 3, "ENU", this.Name, text );
+                            if ( p == null )
+                            {
+                                if ( ascii )
+                                    p = new AsciiMessage( m_Serial, m_ItemID, type, hue, 3, this.Name, text );
+                                else
+                                    p = new UnicodeMessage( m_Serial, m_ItemID, type, hue, 3, "ENU", this.Name, text );
 
-                            p.Acquire();
+                                p.Acquire();
+                            }
+
+                            state.Send( p );
                         }
-
-                        state.Send( p );
                     }
                 }
-
-                Packet.Release( p );
-
-                eable.Free();
+                finally
+                {
+                    Packet.Release( p );
+                    eable.Free();
+                }
             }
         }
 
@@ -3448,22 +3452,26 @@ namespace Server
 
                 IPooledEnumerable<NetState> eable = m_Map.GetClientsInRange(worldLoc, GetMaxUpdateRange());
 
-                foreach ( NetState state in eable )
+                try
                 {
-                    Mobile m = state.Mobile;
-
-                    if ( m.CanSee( this ) && m.InRange( worldLoc, GetUpdateRange( m ) ) )
+                    foreach ( NetState state in eable )
                     {
-                        if ( p == null )
-                            p = Packet.Acquire( new MessageLocalized( m_Serial, m_ItemID, type, hue, 3, number, this.Name, args ) );
+                        Mobile m = state.Mobile;
 
-                        state.Send( p );
+                        if ( m.CanSee( this ) && m.InRange( worldLoc, GetUpdateRange( m ) ) )
+                        {
+                            if ( p == null )
+                                p = Packet.Acquire( new MessageLocalized( m_Serial, m_ItemID, type, hue, 3, number, this.Name, args ) );
+
+                            state.Send( p );
+                        }
                     }
                 }
-
-                Packet.Release( p );
-
-                eable.Free();
+                finally
+                {
+                    Packet.Release( p );
+                    eable.Free();
+                }
             }
         }
 

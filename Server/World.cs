@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using Server;
 using Server.Mobiles;
 using Server.Accounting;
@@ -44,6 +45,7 @@ namespace Server {
         private static readonly object m_DiskWriteSync = new object();
         private static bool m_DiskWriteProducersActive;
         private static bool m_DiskWriteCompletePending;
+        private static ExceptionDispatchInfo m_DiskWriteError;
 
         private static Queue<IEntity> _addQueue, _deleteQueue;
 
@@ -81,9 +83,27 @@ namespace Server {
             }
         }
 
+        internal static void NotifyDiskWriteFailed(Exception error)
+        {
+            lock (m_DiskWriteSync)
+            {
+                if (m_DiskWriteError == null)
+                    m_DiskWriteError = ExceptionDispatchInfo.Capture(error);
+
+                NotifyDiskWriteComplete();
+            }
+        }
+
         public static void WaitForWriteCompletion()
         {
             m_DiskWriteHandle.WaitOne();
+
+            ExceptionDispatchInfo error;
+            lock (m_DiskWriteSync)
+                error = m_DiskWriteError;
+
+            if (error != null)
+                error.Throw();
         }
 
         public static Dictionary<Serial, Mobile> Mobiles {
@@ -120,12 +140,14 @@ namespace Server {
 
             p.Acquire();
 
-            for ( int i = 0; i < list.Count; ++i ) {
-                if ( list[i].Mobile != null )
-                    list[i].Send( p );
+            try {
+                for ( int i = 0; i < list.Count; ++i ) {
+                    if ( list[i].Mobile != null )
+                        list[i].Send( p );
+                }
+            } finally {
+                p.Release();
             }
-
-            p.Release();
 
             NetState.FlushAll();
         }
@@ -299,6 +321,13 @@ namespace Server {
         {
             int count = tdbReader.ReadInt32();
 
+            if ( count < 0 )
+                throw new InvalidDataException( "Negative world type count." );
+
+            // Each type name needs at least one byte for its string length.
+            if ( count > tdbReader.BaseStream.Length - tdbReader.BaseStream.Position )
+                throw new EndOfStreamException( "World type table does not contain all declared types." );
+
             List<Tuple<ConstructorInfo, string>> types = new List<Tuple<ConstructorInfo, string>>( count );
 
             for (int i = 0; i < count; ++i)
@@ -347,6 +376,37 @@ namespace Server {
             return types;
         }
 
+        private static int ReadIndexCount( BinaryReader reader ) {
+            int count = reader.ReadInt32();
+
+            if ( count < 0 )
+                throw new InvalidDataException( "Negative world index count." );
+
+            if ( count > (reader.BaseStream.Length - reader.BaseStream.Position) / 20 )
+                throw new EndOfStreamException( "World index does not contain all declared records." );
+
+            return count;
+        }
+
+        private static void CheckDataRange( IEntityEntry entry, long dataLength ) {
+            if ( entry.Position < 0 || entry.Length < 0 || entry.Position > dataLength || entry.Length > dataLength - entry.Position )
+                throw new InvalidDataException( "Serialized object extends beyond its data file." );
+        }
+
+        private static void CheckSaveFiles( params string[] paths ) {
+            bool anyExists = false;
+
+            for ( int i = 0; i < paths.Length; ++i )
+                anyExists |= File.Exists( paths[i] );
+
+            if ( !anyExists )
+                return;
+
+            for ( int i = 0; i < paths.Length; ++i )
+                if ( !File.Exists( paths[i] ) )
+                    throw new FileNotFoundException( "Incomplete world save: a required file is missing.", paths[i] );
+        }
+
         public static void Load() {
             if ( m_Loaded )
                 return;
@@ -362,6 +422,10 @@ namespace Server {
 
             _addQueue = new Queue<IEntity>();
             _deleteQueue = new Queue<IEntity>();
+
+            CheckSaveFiles( MobileIndexPath, MobileTypesPath, MobileDataPath );
+            CheckSaveFiles( ItemIndexPath, ItemTypesPath, ItemDataPath );
+            CheckSaveFiles( GuildIndexPath, GuildDataPath );
 
             int mobileCount = 0, itemCount = 0, guildCount = 0;
 
@@ -380,7 +444,7 @@ namespace Server {
 
                         List<Tuple<ConstructorInfo, string>> types = ReadTypes( tdbReader );
 
-                        mobileCount = idxReader.ReadInt32();
+                        mobileCount = ReadIndexCount( idxReader );
 
                         m_Mobiles = new Dictionary<Serial, Mobile>( mobileCount );
 
@@ -395,6 +459,12 @@ namespace Server {
                             if ( objs == null )
                                 continue;
 
+                            if ( !((Serial)serial).IsMobile )
+                                throw new InvalidDataException( String.Format( "Invalid mobile serial {0} in world index.", (Serial)serial ) );
+
+                            if ( m_Mobiles.ContainsKey( (Serial)serial ) )
+                                throw new InvalidDataException( String.Format( "Duplicate mobile serial {0} in world index.", (Serial)serial ) );
+
                             Mobile m = null;
                             ConstructorInfo ctor = objs.Item1;
                             string typeName = objs.Item2;
@@ -402,7 +472,8 @@ namespace Server {
                             try {
                                 ctorArgs[0] = ( Serial ) serial;
                                 m = ( Mobile ) ( ctor.Invoke( ctorArgs ) );
-                            } catch {
+                            } catch ( Exception e ) {
+                                throw new Exception( String.Format( "Failed to construct mobile '{0}' with serial {1}.", typeName, (Serial)serial ), e );
                             }
 
                             if ( m != null ) {
@@ -429,7 +500,7 @@ namespace Server {
 
                         List<Tuple<ConstructorInfo, string>> types = ReadTypes( tdbReader );
 
-                        itemCount = idxReader.ReadInt32();
+                        itemCount = ReadIndexCount( idxReader );
 
                         m_Items = new Dictionary<Serial, Item>( itemCount );
 
@@ -444,6 +515,12 @@ namespace Server {
                             if ( objs == null )
                                 continue;
 
+                            if ( !((Serial)serial).IsItem )
+                                throw new InvalidDataException( String.Format( "Invalid item serial {0} in world index.", (Serial)serial ) );
+
+                            if ( m_Items.ContainsKey( (Serial)serial ) )
+                                throw new InvalidDataException( String.Format( "Duplicate item serial {0} in world index.", (Serial)serial ) );
+
                             Item item = null;
                             ConstructorInfo ctor = objs.Item1;
                             string typeName = objs.Item2;
@@ -451,7 +528,8 @@ namespace Server {
                             try {
                                 ctorArgs[0] = ( Serial ) serial;
                                 item = ( Item ) ( ctor.Invoke( ctorArgs ) );
-                            } catch {
+                            } catch ( Exception e ) {
+                                throw new Exception( String.Format( "Failed to construct item '{0}' with serial {1}.", typeName, (Serial)serial ), e );
                             }
 
                             if ( item != null ) {
@@ -473,7 +551,7 @@ namespace Server {
                 using ( FileStream idx = new FileStream( GuildIndexPath, FileMode.Open, FileAccess.Read, FileShare.Read ) ) {
                     BinaryReader idxReader = new BinaryReader( idx );
 
-                    guildCount = idxReader.ReadInt32();
+                    guildCount = ReadIndexCount( idxReader );
 
                     CreateGuildEventArgs createEventArgs = new CreateGuildEventArgs( -1 );
                     for ( int i = 0; i < guildCount; ++i ) {
@@ -483,6 +561,7 @@ namespace Server {
                         int length = idxReader.ReadInt32();
 
                         createEventArgs.Id = id;
+                        createEventArgs.Guild = null;
                         EventSink.InvokeCreateGuild(createEventArgs);
                         BaseGuild guild = createEventArgs.Guild;
                         if ( guild != null )
@@ -508,9 +587,9 @@ namespace Server {
                         Mobile m = entry.Mobile;
 
                         if ( m != null ) {
-                            reader.Seek( entry.Position, SeekOrigin.Begin );
-
                             try {
+                                CheckDataRange( entry, bin.Length );
+                                reader.Seek( entry.Position, SeekOrigin.Begin );
                                 m_LoadingType = entry.TypeName;
                                 m.Deserialize( reader );
 
@@ -543,9 +622,9 @@ namespace Server {
                         Item item = entry.Item;
 
                         if ( item != null ) {
-                            reader.Seek( entry.Position, SeekOrigin.Begin );
-
                             try {
+                                CheckDataRange( entry, bin.Length );
+                                reader.Seek( entry.Position, SeekOrigin.Begin );
                                 m_LoadingType = entry.TypeName;
                                 item.Deserialize( reader );
 
@@ -580,9 +659,9 @@ namespace Server {
                         BaseGuild g = entry.Guild;
 
                         if ( g != null ) {
-                            reader.Seek( entry.Position, SeekOrigin.Begin );
-
                             try {
+                                CheckDataRange( entry, bin.Length );
+                                reader.Seek( entry.Position, SeekOrigin.Begin );
                                 g.Deserialize( reader );
 
                                 if ( reader.Position != ( entry.Position + entry.Length ) )
@@ -731,6 +810,9 @@ namespace Server {
         }
 
         private static void SaveIndex<T>( List<T> list, string path ) where T : IEntityEntry {
+            if ( list.Count == 0 && !File.Exists( path ) )
+                return;
+
             if ( !Directory.Exists( "Saves/Mobiles/" ) )
                 Directory.CreateDirectory( "Saves/Mobiles/" );
 

@@ -44,7 +44,7 @@ namespace Server {
         }
 
         private int GetThreadCount() {
-            return processorCount - 1;
+            return Math.Max( 1, processorCount - 1 );
         }
 
         private SaveMetrics metrics;
@@ -63,6 +63,10 @@ namespace Server {
         public override void Save(SaveMetrics metrics, bool permitBackgroundWrite)
         {
             this.metrics = metrics;
+            finished = false;
+            consumers = null;
+            cycle = 0;
+            Exception saveError = null;
 
             try {
                 try {
@@ -101,8 +105,15 @@ namespace Server {
                 }
 
                 Commit();
+            } catch ( Exception ex ) {
+                saveError = ex;
+                throw;
             } finally {
-                CloseFiles();
+                try { CloseFiles(); }
+                catch {
+                    if ( saveError == null )
+                        throw;
+                }
             }
         }
 

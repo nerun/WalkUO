@@ -55,6 +55,7 @@ namespace Server
         private bool m_PrioritySet;
 
         private volatile bool m_Queued;
+        private static readonly object m_StateLock = new object();
 
         private static string FormatDelegate( Delegate callback )
         {
@@ -77,15 +78,18 @@ namespace Server
             }
             set
             {
-                if ( !m_PrioritySet )
-                    m_PrioritySet = true;
-
-                if ( m_Priority != value )
+                lock ( m_StateLock )
                 {
-                    m_Priority = value;
+                    if ( !m_PrioritySet )
+                        m_PrioritySet = true;
 
-                    if ( m_Running )
-                        TimerThread.PriorityChange( this, (int)m_Priority );
+                    if ( m_Priority != value )
+                    {
+                        m_Priority = value;
+
+                        if ( m_Running )
+                            TimerThread.PriorityChange( this, (int)m_Priority );
+                    }
                 }
             }
         }
@@ -93,19 +97,19 @@ namespace Server
         public DateTime Next
         {
             // Obnoxious
-            get { return DateTime.UtcNow + TimeSpan.FromMilliseconds(m_Next-Core.TickCount); }
+            get { lock ( m_StateLock ) return DateTime.UtcNow + TimeSpan.FromMilliseconds(m_Next-Core.TickCount); }
         }
 
         public TimeSpan Delay
         {
-            get { return TimeSpan.FromMilliseconds(m_Delay); }
-            set { m_Delay = (long)value.TotalMilliseconds; }
+            get { lock ( m_StateLock ) return TimeSpan.FromMilliseconds(m_Delay); }
+            set { lock ( m_StateLock ) m_Delay = (long)value.TotalMilliseconds; }
         }
 
         public TimeSpan Interval
         {
-            get { return TimeSpan.FromMilliseconds(m_Interval); }
-            set { m_Interval = (long)value.TotalMilliseconds; }
+            get { lock ( m_StateLock ) return TimeSpan.FromMilliseconds(m_Interval); }
+            set { lock ( m_StateLock ) m_Interval = (long)value.TotalMilliseconds; }
         }
 
         public bool Running
@@ -166,18 +170,29 @@ namespace Server
 
             public static void DumpInfo( TextWriter tw )
             {
-                for ( int i = 0; i < 8; ++i )
+                Timer[][] timers = new Timer[m_Timers.Length][];
+
+                lock ( m_StateLock )
+                {
+                    for ( int i = 0; i < timers.Length; ++i )
+                        timers[i] = m_Timers[i].ToArray();
+                }
+
+                for ( int i = 0; i < timers.Length; ++i )
                 {
                     tw.WriteLine( "Priority: {0}", (TimerPriority)i );
                     tw.WriteLine();
 
                     Dictionary<string, List<Timer>> hash = new Dictionary<string, List<Timer>>();
 
-                    for ( int j = 0; j < m_Timers[i].Count; ++j )
+                    for ( int j = 0; j < timers[i].Length; ++j )
                     {
-                        Timer t = m_Timers[i][j];
+                        Timer t = timers[i][j];
 
                         string key = t.ToString();
+
+                        if ( key == null )
+                            key = "null";
 
                         List<Timer> list;
                         hash.TryGetValue( key, out list );
@@ -193,7 +208,7 @@ namespace Server
                         string key = kv.Key;
                         List<Timer> list = kv.Value;
 
-                        tw.WriteLine( "Type: {0}; Count: {1}; Percent: {2}%", key, list.Count, (int)(100 * (list.Count / (double)m_Timers[i].Count)) );
+                        tw.WriteLine( "Type: {0}; Count: {1}; Percent: {2}%", key, list.Count, (int)(100 * (list.Count / (double)timers[i].Length)) );
                     }
 
                     tw.WriteLine();
@@ -252,7 +267,7 @@ namespace Server
 
             public static void Change( Timer t, int newIndex, bool isAdd )
             {
-                lock (m_Changed) {
+                lock (m_StateLock) {
                     TimerChangeEntry previous;
 
                     if (m_Changed.TryGetValue(t, out previous)) {
@@ -284,7 +299,7 @@ namespace Server
 
             private static void ProcessChanged()
             {
-                lock (m_Changed) {
+                lock (m_StateLock) {
                     long curTicks = Core.TickCount;
 
                     foreach (TimerChangeEntry tce in m_Changed.Values) {
@@ -346,23 +361,33 @@ namespace Server
                         {
                             Timer t = m_Timers[i][j];
 
-                            if ( !t.m_Queued && now > t.m_Next )
-                            {
-                                t.m_Queued = true;
+                            bool enqueue;
+                            bool stopped = false;
 
+                            lock ( m_StateLock )
+                            {
+                                enqueue = !m_Changed.ContainsKey(t) && !t.m_Queued && now > t.m_Next;
+
+                                if ( enqueue )
+                                {
+                                    t.m_Queued = true;
+
+                                    if ( t.m_Count != 0 && (++t.m_Index >= t.m_Count) )
+                                        stopped = t.StopTimer();
+                                    else
+                                        t.m_Next = now + t.m_Interval;
+                                }
+                            }
+
+                            if ( enqueue )
+                            {
                                 lock ( m_Queue )
                                     m_Queue.Enqueue( t );
 
                                 loaded = true;
-                                    
-                                if ( t.m_Count != 0 && (++t.m_Index >= t.m_Count) )
-                                {
-                                    t.Stop();
-                                }
-                                else
-                                {
-                                    t.m_Next = now + t.m_Interval;
-                                }
+
+                                if ( stopped )
+                                    t.RecordStopped();
                             }
                         }
                     }
@@ -393,19 +418,27 @@ namespace Server
                 while ( index < m_BreakCount && m_Queue.Count != 0 )
                 {
                     Timer t = m_Queue.Dequeue();
-                    TimerProfile prof = t.GetProfile();
+                    TimerProfile prof = null;
+                    bool profileStarted = false;
 
-                    if ( prof != null ) {
-                        prof.Start();
+                    try {
+                        prof = t.GetProfile();
+
+                        if ( prof != null ) {
+                            prof.Start();
+                            profileStarted = true;
+                        }
+
+                        t.OnTick();
+                    } finally {
+                        t.m_Queued = false;
+
+                        if ( profileStarted ) {
+                            prof.Finish();
+                        }
                     }
 
-                    t.OnTick();
-                    t.m_Queued = false;
                     ++index;
-
-                    if ( prof != null ) {
-                        prof.Finish();
-                    }
                 }
             }
         }
@@ -660,32 +693,48 @@ namespace Server
 
         public void Start()
         {
-            if ( !m_Running )
+            lock ( m_StateLock )
             {
+                if ( m_Running )
+                    return;
+
                 m_Running = true;
                 TimerThread.AddTimer( this );
+            }
 
-                TimerProfile prof = GetProfile();
+            TimerProfile prof = GetProfile();
 
-                if ( prof != null ) {
-                    prof.IncrementStarted();
-                }
+            if ( prof != null ) {
+                prof.IncrementStarted();
+            }
+        }
+
+        private bool StopTimer()
+        {
+            lock ( m_StateLock )
+            {
+                if ( !m_Running )
+                    return false;
+
+                m_Running = false;
+                TimerThread.RemoveTimer( this );
+                return true;
+            }
+        }
+
+        private void RecordStopped()
+        {
+            TimerProfile prof = GetProfile();
+
+            if ( prof != null ) {
+                prof.IncrementStopped();
             }
         }
 
         public void Stop()
         {
-            if ( m_Running )
-            {
-                m_Running = false;
-                TimerThread.RemoveTimer( this );
-
-                TimerProfile prof = GetProfile();
-
-                if ( prof != null ) {
-                    prof.IncrementStopped();
-                }
-            }
+            if ( StopTimer() )
+                RecordStopped();
         }
 
         protected virtual void OnTick()

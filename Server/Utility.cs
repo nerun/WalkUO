@@ -81,21 +81,19 @@ namespace Server
             str = Intern( str );
         }
 
-        private static Dictionary<IPAddress, IPAddress> _ipAddressTable;
+        private static readonly Dictionary<IPAddress, IPAddress> _ipAddressTable = new Dictionary<IPAddress, IPAddress>();
 
         public static IPAddress Intern( IPAddress ipAddress ) {
-            if ( _ipAddressTable == null ) {
-                _ipAddressTable = new Dictionary<IPAddress, IPAddress>();
+            lock ( _ipAddressTable ) {
+                IPAddress interned;
+
+                if ( !_ipAddressTable.TryGetValue( ipAddress, out interned ) ) {
+                    interned = ipAddress;
+                    _ipAddressTable[ipAddress] = interned;
+                }
+
+                return interned;
             }
-
-            IPAddress interned;
-
-            if ( !_ipAddressTable.TryGetValue( ipAddress, out interned ) ) {
-                interned = ipAddress;
-                _ipAddressTable[ipAddress] = interned;
-            }
-
-            return interned;
         }
 
         public static void Intern( ref IPAddress ipAddress ) {
@@ -146,7 +144,7 @@ namespace Server
 
         public static bool IPMatchCIDR( string cidr, IPAddress ip )
         {
-            if ( ip == null || ip.AddressFamily == AddressFamily.InterNetworkV6 )
+            if ( cidr == null || ip == null || ip.AddressFamily == AddressFamily.InterNetworkV6 )
                 return false;    //Just worry about IPv4 for now
 
 
@@ -185,8 +183,12 @@ namespace Server
 
             byte[] bytes = new byte[4];
             string[] split = cidr.Split( '.' );
+
+            if ( split.Length != 4 )
+                return false;
+
             bool cidrBits = false;
-            int cidrLength = 0;
+            long cidrLength = 0;
 
             for ( int i = 0; i < 4; i++ )
             {
@@ -264,6 +266,9 @@ namespace Server
                     {
                         return false;
                     }
+
+                    if ( part > byte.MaxValue || cidrLength > int.MaxValue )
+                        return false;
                 }
 
                 bytes[i] = (byte)part;
@@ -271,12 +276,12 @@ namespace Server
 
             uint cidrPrefix = OrderedAddressValue( bytes );
 
-            return IPMatchCIDR( cidrPrefix, ip, cidrLength );
+            return IPMatchCIDR( cidrPrefix, ip, (int)cidrLength );
         }
 
         public static bool IPMatchCIDR( IPAddress cidrPrefix, IPAddress ip, int cidrLength )
         {
-            if ( cidrPrefix == null || ip == null || cidrPrefix.AddressFamily == AddressFamily.InterNetworkV6 )    //Ignore IPv6 for now
+            if ( cidrPrefix == null || ip == null || cidrPrefix.AddressFamily == AddressFamily.InterNetworkV6 || ip.AddressFamily == AddressFamily.InterNetworkV6 )    //Ignore IPv6 for now
                 return false;
 
             uint cidrValue = SwapUnsignedInt( (uint)GetLongAddressValue( cidrPrefix ) );
@@ -359,9 +364,15 @@ namespace Server
 
             string[] split = val.Split( '.' );
 
+            if ( split.Length > 4 )
+            {
+                valid = false;
+                return false;
+            }
+
             for ( int i = 0; i < 4; ++i )
             {
-                int lowPart, highPart;
+                long lowPart, highPart;
 
                 if ( i >= split.Length )
                 {
@@ -453,6 +464,12 @@ namespace Server
                             else
                             {
                                 valid = false;    //high & lowpart would be 0 if it got to here.
+                            }
+
+                            if ( lowPart > int.MaxValue || highPart > int.MaxValue )
+                            {
+                                valid = false;
+                                break;
                             }
                         }
                     }
@@ -643,44 +660,44 @@ namespace Server
         #region In[...]Range
         public static bool InRange( Point3D p1, Point3D p2, int range )
         {
-            return ( p1.m_X >= (p2.m_X - range) )
-                && ( p1.m_X <= (p2.m_X + range) )
-                && ( p1.m_Y >= (p2.m_Y - range) )
-                && ( p1.m_Y <= (p2.m_Y + range) );
+            return ( p1.m_X >= ((long)p2.m_X - range) )
+                && ( p1.m_X <= ((long)p2.m_X + range) )
+                && ( p1.m_Y >= ((long)p2.m_Y - range) )
+                && ( p1.m_Y <= ((long)p2.m_Y + range) );
         }
 
         public static bool InUpdateRange( Point3D p1, Point3D p2 )
         {
-            return ( p1.m_X >= (p2.m_X - 18) )
-                && ( p1.m_X <= (p2.m_X + 18) )
-                && ( p1.m_Y >= (p2.m_Y - 18) )
-                && ( p1.m_Y <= (p2.m_Y + 18) );
+            return ( p1.m_X >= ((long)p2.m_X - 18) )
+                && ( p1.m_X <= ((long)p2.m_X + 18) )
+                && ( p1.m_Y >= ((long)p2.m_Y - 18) )
+                && ( p1.m_Y <= ((long)p2.m_Y + 18) );
         }
 
         public static bool InUpdateRange( Point2D p1, Point2D p2 )
         {
-            return ( p1.m_X >= (p2.m_X - 18) )
-                && ( p1.m_X <= (p2.m_X + 18) )
-                && ( p1.m_Y >= (p2.m_Y - 18) )
-                && ( p1.m_Y <= (p2.m_Y + 18) );
+            return ( p1.m_X >= ((long)p2.m_X - 18) )
+                && ( p1.m_X <= ((long)p2.m_X + 18) )
+                && ( p1.m_Y >= ((long)p2.m_Y - 18) )
+                && ( p1.m_Y <= ((long)p2.m_Y + 18) );
         }
 
         public static bool InUpdateRange( IPoint2D p1, IPoint2D p2 )
         {
-            return ( p1.X >= (p2.X - 18) )
-                && ( p1.X <= (p2.X + 18) )
-                && ( p1.Y >= (p2.Y - 18) )
-                && ( p1.Y <= (p2.Y + 18) );
+            return ( p1.X >= ((long)p2.X - 18) )
+                && ( p1.X <= ((long)p2.X + 18) )
+                && ( p1.Y >= ((long)p2.Y - 18) )
+                && ( p1.Y <= ((long)p2.Y + 18) );
         }
         #endregion
 
         public static Direction GetDirection( IPoint2D from, IPoint2D to )
         {
-            int dx = to.X - from.X;
-            int dy = to.Y - from.Y;
+            long dx = (long)to.X - from.X;
+            long dy = (long)to.Y - from.Y;
 
-            int adx = Math.Abs( dx );
-            int ady = Math.Abs( dy );
+            long adx = Math.Abs( dx );
+            long ady = Math.Abs( dy );
 
             if ( adx >= ady * 3 )
             {
@@ -821,7 +838,12 @@ namespace Server
                 return min;
             }
 
-            return min + RandomImpl.Next((max - min) + 1);
+            long count = (long)max - min + 1;
+
+            if ( count > int.MaxValue )
+                return (int)(min + (long)(RandomImpl.NextDouble() * count));
+
+            return min + RandomImpl.Next((int)count);
         }
 
         public static int Random( int from, int count )
@@ -831,6 +853,9 @@ namespace Server
             } else if ( count > 0 ) {
                 return from + RandomImpl.Next(count);
             } else {
+                if ( count == int.MinValue )
+                    return from - (int)(RandomImpl.NextDouble() * 2147483648.0);
+
                 return from - RandomImpl.Next(-count);
             }
         }
@@ -1158,9 +1183,19 @@ namespace Server
 
             ArrayList list = new ArrayList();
 
-            while ( e.MoveNext() )
+            try
             {
-                list.Add( e.Current );
+                while ( e.MoveNext() )
+                {
+                    list.Add( e.Current );
+                }
+            }
+            finally
+            {
+                IDisposable disposable = e as IDisposable;
+
+                if ( disposable != null )
+                    disposable.Dispose();
             }
 
             return list;
@@ -1168,10 +1203,10 @@ namespace Server
 
         public static bool RangeCheck( IPoint2D p1, IPoint2D p2, int range )
         {
-            return ( p1.X >= (p2.X - range) )
-                && ( p1.X <= (p2.X + range) )
-                && ( p1.Y >= (p2.Y - range) )
-                && ( p2.Y <= (p2.Y + range) );
+            return ( p1.X >= ((long)p2.X - range) )
+                && ( p1.X <= ((long)p2.X + range) )
+                && ( p1.Y >= ((long)p2.Y - range) )
+                && ( p1.Y <= ((long)p2.Y + range) );
         }
 
         public static void FormatBuffer( TextWriter output, Stream input, int length )
@@ -1192,6 +1227,9 @@ namespace Server
                 for ( int j = 0; j < 16; ++j )
                 {
                     int c = input.ReadByte();
+
+                    if ( c < 0 )
+                        throw new EndOfStreamException();
 
                     bytes.Append( c.ToString( "X2" ) );
 
@@ -1231,6 +1269,9 @@ namespace Server
                     if ( j < rem )
                     {
                         int c = input.ReadByte();
+
+                        if ( c < 0 )
+                            throw new EndOfStreamException();
 
                         bytes.Append( c.ToString( "X2" ) );
 

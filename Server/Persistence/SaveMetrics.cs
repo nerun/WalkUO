@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Text;
 
 namespace Server {
@@ -79,16 +80,22 @@ namespace Server {
 #endif
             }
 
-            numberOfWorldSaves = new PerformanceCounter( PerformanceCategoryName, "Save - Count", false );
+            try {
+                numberOfWorldSaves = new PerformanceCounter( PerformanceCategoryName, "Save - Count", false );
 
-            itemsPerSecond = new PerformanceCounter( PerformanceCategoryName, "Save - Items/sec", false );
-            mobilesPerSecond = new PerformanceCounter( PerformanceCategoryName, "Save - Mobiles/sec", false );
+                itemsPerSecond = new PerformanceCounter( PerformanceCategoryName, "Save - Items/sec", false );
+                mobilesPerSecond = new PerformanceCounter( PerformanceCategoryName, "Save - Mobiles/sec", false );
 
-            serializedBytesPerSecond = new PerformanceCounter( PerformanceCategoryName, "Save - Serialized bytes/sec", false );
-            writtenBytesPerSecond = new PerformanceCounter( PerformanceCategoryName, "Save - Written bytes/sec", false );
+                serializedBytesPerSecond = new PerformanceCounter( PerformanceCategoryName, "Save - Serialized bytes/sec", false );
+                writtenBytesPerSecond = new PerformanceCounter( PerformanceCategoryName, "Save - Written bytes/sec", false );
 
-            // increment number of world saves
-            numberOfWorldSaves.Increment();
+                // increment number of world saves
+                numberOfWorldSaves.Increment();
+            } catch {
+                try { Dispose(); }
+                catch { } // Preserve the construction or initialization error.
+                throw;
+            }
         }
 
         public void OnItemSaved( int numberOfBytes ) {
@@ -117,13 +124,20 @@ namespace Server {
             if ( !isDisposed ) {
                 isDisposed = true;
 
-                numberOfWorldSaves.Dispose();
+                ExceptionDispatchInfo error = null;
 
-                itemsPerSecond.Dispose();
-                mobilesPerSecond.Dispose();
+                foreach ( PerformanceCounter counter in new PerformanceCounter[] { numberOfWorldSaves, itemsPerSecond, mobilesPerSecond, serializedBytesPerSecond, writtenBytesPerSecond } ) {
+                    if ( counter != null ) {
+                        try { counter.Dispose(); }
+                        catch ( Exception ex ) {
+                            if ( error == null )
+                                error = ExceptionDispatchInfo.Capture( ex );
+                        }
+                    }
+                }
 
-                serializedBytesPerSecond.Dispose();
-                writtenBytesPerSecond.Dispose();
+                if ( error != null )
+                    error.Throw();
             }
         }
     }

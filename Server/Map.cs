@@ -974,14 +974,26 @@ namespace Server
                 pool = new List<Item>(128); // Arbitrary limit
             }
 
-            var eable = map.GetItemsInRange(new Point3D(x, y, 0), 0);
+            IPooledEnumerable<Item> eable = null;
 
-            pool.AddRange(
-                eable.Where(item => item.ItemID <= TileData.MaxItemValue && !(item is BaseMulti))
-                     .OrderBy(item => item.Z)
-                     .Take(pool.Capacity));
-
-            eable.Free();
+            try
+            {
+                eable = map.GetItemsInRange(new Point3D(x, y, 0), 0);
+                pool.AddRange(
+                    eable.Where(item => item.ItemID <= TileData.MaxItemValue && !(item is BaseMulti))
+                         .OrderBy(item => item.Z)
+                         .Take(pool.Capacity));
+            }
+            catch
+            {
+                FreeFixItems(pool);
+                throw;
+            }
+            finally
+            {
+                if (eable != null)
+                    eable.Free();
+            }
 
             return pool;
         }
@@ -1014,72 +1026,77 @@ namespace Server
 
             var items = AcquireFixItems(this, x, y);
 
-            for (var i = 0; i < items.Count; i++)
+            try
             {
-                var toFix = items[i];
-
-                if (!toFix.Movable)
+                for (var i = 0; i < items.Count; i++)
                 {
-                    continue;
-                }
+                    var toFix = items[i];
 
-                var z = int.MinValue;
-                var currentZ = toFix.Z;
-
-                if (!landTile.Ignored && landAvg <= currentZ)
-                {
-                    z = landAvg;
-                }
-
-                foreach (var tile in tiles)
-                {
-                    var id = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
-
-                    var checkZ = tile.Z;
-                    var checkTop = checkZ + id.CalcHeight;
-
-                    if (checkTop == checkZ && !id.Surface)
-                    {
-                        ++checkTop;
-                    }
-
-                    if (checkTop > z && checkTop <= currentZ)
-                    {
-                        z = checkTop;
-                    }
-                }
-
-                for (var j = 0; j < items.Count; ++j)
-                {
-                    if (j == i)
+                    if (!toFix.Movable)
                     {
                         continue;
                     }
 
-                    var item = items[j];
-                    var id = item.ItemData;
+                    var z = int.MinValue;
+                    var currentZ = toFix.Z;
 
-                    var checkZ = item.Z;
-                    var checkTop = checkZ + id.CalcHeight;
-
-                    if (checkTop == checkZ && !id.Surface)
+                    if (!landTile.Ignored && landAvg <= currentZ)
                     {
-                        ++checkTop;
+                        z = landAvg;
                     }
 
-                    if (checkTop > z && checkTop <= currentZ)
+                    foreach (var tile in tiles)
                     {
-                        z = checkTop;
-                    }
-                }
+                        var id = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
 
-                if (z != int.MinValue)
-                {
-                    toFix.Location = new Point3D(toFix.X, toFix.Y, z);
+                        var checkZ = tile.Z;
+                        var checkTop = checkZ + id.CalcHeight;
+
+                        if (checkTop == checkZ && !id.Surface)
+                        {
+                            ++checkTop;
+                        }
+
+                        if (checkTop > z && checkTop <= currentZ)
+                        {
+                            z = checkTop;
+                        }
+                    }
+
+                    for (var j = 0; j < items.Count; ++j)
+                    {
+                        if (j == i)
+                        {
+                            continue;
+                        }
+
+                        var item = items[j];
+                        var id = item.ItemData;
+
+                        var checkZ = item.Z;
+                        var checkTop = checkZ + id.CalcHeight;
+
+                        if (checkTop == checkZ && !id.Surface)
+                        {
+                            ++checkTop;
+                        }
+
+                        if (checkTop > z && checkTop <= currentZ)
+                        {
+                            z = checkTop;
+                        }
+                    }
+
+                    if (z != int.MinValue)
+                    {
+                        toFix.Location = new Point3D(toFix.X, toFix.Y, z);
+                    }
                 }
             }
-
-            FreeFixItems(items);
+            finally
+            {
+                FreeFixItems(items);
+            }
         }
 #else
         public void FixColumn( int x, int y )
@@ -1095,18 +1112,23 @@ namespace Server
 
             IPooledEnumerable<Item> eable = GetItemsInRange( new Point3D( x, y, 0 ), 0 );
 
-            foreach ( Item item in eable )
+            try
             {
-                if ( !(item is BaseMulti) && item.ItemID <= TileData.MaxItemValue )
+                foreach ( Item item in eable )
                 {
-                    items.Add( item );
+                    if ( !(item is BaseMulti) && item.ItemID <= TileData.MaxItemValue )
+                    {
+                        items.Add( item );
 
-                    if ( items.Count > 100 )
-                        break;
+                        if ( items.Count > 100 )
+                            break;
+                    }
                 }
             }
-
-            eable.Free();
+            finally
+            {
+                eable.Free();
+            }
 
             if ( items.Count > 100 )
                 return;
@@ -1740,13 +1762,19 @@ namespace Server
 
                 var pool = PooledEnumeration.EnumerateSectors(map, bounds).SelectMany(s => selector(s, bounds));
 
-                if (e != null)
+                if (e == null)
+                {
+                    e = new PooledEnumerable<T>(Enumerable.Empty<T>());
+                }
+
+                try
                 {
                     e._Pool.AddRange(pool);
                 }
-                else
+                catch
                 {
-                    e = new PooledEnumerable<T>(pool);
+                    e.Free();
+                    throw;
                 }
 
                 return e;
@@ -2687,16 +2715,21 @@ namespace Server
                 {
                     IPooledEnumerable<Item> eable = GetItemsInRange( point, 0 );
 
-                    foreach( Item item in eable )
+                    try
                     {
-                        if( item.Visible )
-                            contains = false;
+                        foreach( Item item in eable )
+                        {
+                            if( item.Visible )
+                                contains = false;
 
-                        if( !contains )
-                            break;
+                            if( !contains )
+                                break;
+                        }
                     }
-
-                    eable.Free();
+                    finally
+                    {
+                        eable.Free();
+                    }
 
                     if( contains )
                         return false;
@@ -2733,63 +2766,67 @@ namespace Server
 
             IPooledEnumerable<Item> area = GetItemsInBounds( rect );
 
-            foreach( Item i in area )
+            try
             {
-                if( !i.Visible )
-                    continue;
-
-                if( i is BaseMulti || i.ItemID > TileData.MaxItemValue )
-                    continue;
-
-                ItemData id = i.ItemData;
-                flags = id.Flags;
-
-                if( (flags & (TileFlag.Window | TileFlag.NoShoot)) == 0 )
-                    continue;
-
-                height = id.CalcHeight;
-
-                found = false;
-
-                int count = path.Count;
-
-                for( int j = 0; j < count; ++j )
+                foreach( Item i in area )
                 {
-                    Point3D point = path[j];
-                    int pointTop = point.m_Z + 1;
-                    Point3D loc = i.Location;
+                    if( !i.Visible )
+                        continue;
 
-                    //if ( t.Z <= point.Z && t.Z+height >= point.Z && ( height != 0 || ( t.Z == dest.Z && zd != 0 ) ) )
-                    if( loc.m_X == point.m_X && loc.m_Y == point.m_Y &&
-                        loc.m_Z <= pointTop && loc.m_Z + height >= point.m_Z )
+                    if( i is BaseMulti || i.ItemID > TileData.MaxItemValue )
+                        continue;
+
+                    ItemData id = i.ItemData;
+                    flags = id.Flags;
+
+                    if( (flags & (TileFlag.Window | TileFlag.NoShoot)) == 0 )
+                        continue;
+
+                    height = id.CalcHeight;
+
+                    found = false;
+
+                    int count = path.Count;
+
+                    for( int j = 0; j < count; ++j )
                     {
-                        if( loc.m_X == end.m_X && loc.m_Y == end.m_Y && loc.m_Z <= endTop && loc.m_Z + height >= end.m_Z )
-                            continue;
+                        Point3D point = path[j];
+                        int pointTop = point.m_Z + 1;
+                        Point3D loc = i.Location;
 
-                        found = true;
-                        break;
+                        //if ( t.Z <= point.Z && t.Z+height >= point.Z && ( height != 0 || ( t.Z == dest.Z && zd != 0 ) ) )
+                        if( loc.m_X == point.m_X && loc.m_Y == point.m_Y &&
+                            loc.m_Z <= pointTop && loc.m_Z + height >= point.m_Z )
+                        {
+                            if( loc.m_X == end.m_X && loc.m_Y == end.m_Y && loc.m_Z <= endTop && loc.m_Z + height >= end.m_Z )
+                                continue;
+
+                            found = true;
+                            break;
+                        }
                     }
-                }
 
-                if( !found )
-                    continue;
+                    if( !found )
+                        continue;
 
-                area.Free();
-                return false;
-
-                /*if ( (flags & (TileFlag.Impassable | TileFlag.Surface | TileFlag.Roof)) != 0 )
-
-                //flags = TileData.ItemTable[i.ItemID&TileData.MaxItemValue].Flags;
-                //if ( (flags&TileFlag.Window)==0 && (flags&TileFlag.NoShoot)!=0 && ( (flags&TileFlag.Wall)!=0 || (flags&TileFlag.Roof)!=0 || (((flags&TileFlag.Surface)!=0 && zd != 0)) ) )
-                {
-                    //height = TileData.ItemTable[i.ItemID&TileData.MaxItemValue].Height;
-                    //Console.WriteLine( "LoS: Blocked by ITEM \"{0}\" P:{1} T:{2} F:x{3:X}", TileData.ItemTable[i.ItemID&TileData.MaxItemValue].Name, i.Location, i.Location.Z+height, flags );
-                    area.Free();
                     return false;
-                }*/
-            }
 
-            area.Free();
+                    /*if ( (flags & (TileFlag.Impassable | TileFlag.Surface | TileFlag.Roof)) != 0 )
+
+                    //flags = TileData.ItemTable[i.ItemID&TileData.MaxItemValue].Flags;
+                    //if ( (flags&TileFlag.Window)==0 && (flags&TileFlag.NoShoot)!=0 && ( (flags&TileFlag.Wall)!=0 || (flags&TileFlag.Roof)!=0 || (((flags&TileFlag.Surface)!=0 && zd != 0)) ) )
+                    {
+                        //height = TileData.ItemTable[i.ItemID&TileData.MaxItemValue].Height;
+                        //Console.WriteLine( "LoS: Blocked by ITEM \"{0}\" P:{1} T:{2} F:x{3:X}", TileData.ItemTable[i.ItemID&TileData.MaxItemValue].Name, i.Location, i.Location.Z+height, flags );
+                        area.Free();
+                        return false;
+                    }*/
+                }
+            }
+            finally
+            {
+                area.Free();
+            }
 
             return true;
         }

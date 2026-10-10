@@ -573,7 +573,7 @@ namespace Server.Network
                 Mobile m = World.FindMobile( serial );
 
                 if ( m != null && from.Map == m.Map && Utility.InUpdateRange( m.Location, from.Location ) && from.CanSee( m ) )
-                    m.OnHelpRequest( m );
+                    m.OnHelpRequest( from );
             }
         }
 
@@ -2055,8 +2055,12 @@ namespace Server.Network
 
             protected override void OnTick()
             {
-                if ( m_State == null )
+                if ( m_State == null || !m_State.Running || m_State.IsDisposing || m_Mobile == null || m_State.Mobile != m_Mobile || m_Mobile.NetState != m_State )
+                {
                     Stop();
+                    return;
+                }
+
                 if ( m_State.Version != null )
                 {
                     m_State.BlockAllPackets = false;
