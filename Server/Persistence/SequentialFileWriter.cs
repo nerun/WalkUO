@@ -176,6 +176,8 @@ namespace Server {
         }
 
         public override void SetLength( long value ) {
+            // Resizing would desynchronize queued writes and logical offsets.
+            // No current callers in the WalkUO core or scripts.
             CheckDisposed();
             throw new NotSupportedException();
         }
