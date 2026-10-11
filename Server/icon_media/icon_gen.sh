@@ -15,4 +15,4 @@ for SIZE in 256 128 64 48 32 24 16; do
 done
 
 convert "${ICONS[@]}" "$WORKDIR/$ICO"
-mv -fT -- "$WORKDIR/$ICO" "../$ICO"
+mv -vfT -- "$WORKDIR/$ICO" "../$ICO"
