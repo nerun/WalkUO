@@ -8,6 +8,7 @@
     <NoStandardLibraries>false</NoStandardLibraries>
     <AssemblyName>WalkUO</AssemblyName>
     <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
+    <LangVersion>5</LangVersion>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
