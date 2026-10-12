@@ -1323,10 +1323,12 @@ namespace Server.Network
                         prof.Start();
                     }
 
-                    gump.OnResponse( state, new RelayInfo( buttonID, switches, textEntries ) );
-
-                    if ( prof != null ) {
-                        prof.Finish();
+                    try {
+                        gump.OnResponse( state, new RelayInfo( buttonID, switches, textEntries ) );
+                    } finally {
+                        if ( prof != null ) {
+                            prof.Finish();
+                        }
                     }
 
                     return;
@@ -1563,7 +1565,10 @@ namespace Server.Network
 
         public static void PingReq( NetState state, PacketReader pvSrc )
         {
-            state.Send( PingAck.Instantiate( pvSrc.ReadByte() ) );
+            byte ping = pvSrc.ReadByte();
+
+            // Cached packets retain the compression mode of their first send.
+            state.Send( state.CompressionEnabled ? PingAck.Instantiate( ping ) : new PingAck( ping ) );
         }
 
         public static void SetUpdateRange( NetState state, PacketReader pvSrc )

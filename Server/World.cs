@@ -388,6 +388,74 @@ namespace Server {
             return count;
         }
 
+        private static void HandleConstructionFailure( string typeName, Serial serial, int typeID, BinaryReader indexReader, string indexPath, Exception error ) {
+            Console.WriteLine( "An error was encountered while constructing a saved object (before Deserialize)" );
+            Console.WriteLine( " - Type: {0}", typeName );
+            Console.WriteLine( " - Serial: {0}", serial );
+            Console.WriteLine( error );
+
+            if ( !Core.Service ) {
+                Console.WriteLine( "Delete the object? (y/n)" );
+                bool deleteObject = Console.ReadKey( true ).Key == ConsoleKey.Y;
+
+                Console.WriteLine( "Delete all objects of that type? (y/n)" );
+                bool deleteType = Console.ReadKey( true ).Key == ConsoleKey.Y;
+
+                if ( deleteObject || deleteType ) {
+                    DeleteConstructionEntries( indexReader, indexPath, serial, typeID, deleteType );
+                    Console.WriteLine( "The index was updated. Restart the server manually to load the remaining objects." );
+                } else {
+                    Console.WriteLine( "Stop loading? (y/n)" );
+
+                    if ( Console.ReadKey( true ).Key != ConsoleKey.Y ) {
+                        Console.Write( "World: Loading..." );
+                        return;
+                    }
+                }
+            }
+
+            throw new Exception( String.Format( "Failed to construct '{0}' with serial {1} before Deserialize. Loading was stopped.", typeName, serial ), error );
+        }
+
+        private static void DeleteConstructionEntries( BinaryReader reader, string path, Serial serial, int typeID, bool deleteType ) {
+            reader.BaseStream.Seek( 0, SeekOrigin.Begin );
+            int count = ReadIndexCount( reader );
+
+            using ( MemoryStream buffer = new MemoryStream() )
+            using ( BinaryWriter writer = new BinaryWriter( buffer ) ) {
+                int retained = 0;
+                writer.Write( 0 );
+
+                for ( int i = 0; i < count; ++i ) {
+                    int entryTypeID = reader.ReadInt32();
+                    int entrySerial = reader.ReadInt32();
+                    long position = reader.ReadInt64();
+                    int length = reader.ReadInt32();
+
+                    if ( deleteType ? entryTypeID == typeID : entrySerial == (int)serial )
+                        continue;
+
+                    writer.Write( entryTypeID );
+                    writer.Write( entrySerial );
+                    writer.Write( position );
+                    writer.Write( length );
+                    ++retained;
+                }
+
+                buffer.Position = 0;
+                writer.Write( retained );
+                writer.Flush();
+
+                // Release the load's read handle before rewriting the complete index.
+                reader.Close();
+                buffer.Position = 0;
+
+                using ( FileStream stream = new FileStream( path, FileMode.Create, FileAccess.Write, FileShare.None ) ) {
+                    buffer.CopyTo( stream );
+                }
+            }
+        }
+
         private static void CheckDataRange( IEntityEntry entry, long dataLength ) {
             if ( entry.Position < 0 || entry.Length < 0 || entry.Position > dataLength || entry.Length > dataLength - entry.Position )
                 throw new InvalidDataException( "Serialized object extends beyond its data file." );
@@ -473,7 +541,7 @@ namespace Server {
                                 ctorArgs[0] = ( Serial ) serial;
                                 m = ( Mobile ) ( ctor.Invoke( ctorArgs ) );
                             } catch ( Exception e ) {
-                                throw new Exception( String.Format( "Failed to construct mobile '{0}' with serial {1}.", typeName, (Serial)serial ), e );
+                                HandleConstructionFailure( typeName, (Serial)serial, typeID, idxReader, MobileIndexPath, e );
                             }
 
                             if ( m != null ) {
@@ -529,7 +597,7 @@ namespace Server {
                                 ctorArgs[0] = ( Serial ) serial;
                                 item = ( Item ) ( ctor.Invoke( ctorArgs ) );
                             } catch ( Exception e ) {
-                                throw new Exception( String.Format( "Failed to construct item '{0}' with serial {1}.", typeName, (Serial)serial ), e );
+                                HandleConstructionFailure( typeName, (Serial)serial, typeID, idxReader, ItemIndexPath, e );
                             }
 
                             if ( item != null ) {
