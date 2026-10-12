@@ -172,8 +172,46 @@ namespace Server
 
         public static bool CompileCSScripts( bool debug, bool cache, out Assembly assembly )
         {
-            Console.Write( "Scripts: Compiling C# scripts..." );
-            string[] files = GetScripts( "*.cs" );
+            return CompileCSharpScripts( "C#", "Scripts.CS", GetScripts( "*.cs" ), debug, cache, out assembly );
+        }
+
+        public static bool CompileWBScripts( out Assembly assembly )
+        {
+            return CompileWBScripts( false, true, out assembly );
+        }
+
+        public static bool CompileWBScripts( bool debug, out Assembly assembly )
+        {
+            return CompileWBScripts( debug, true, out assembly );
+        }
+
+        public static bool CompileWBScripts( bool debug, bool cache, out Assembly assembly )
+        {
+            List<string> files = new List<string>();
+
+            foreach( string file in GetScripts( "*" ) )
+            {
+                if( String.Equals( Path.GetExtension( file ), ".wb", StringComparison.OrdinalIgnoreCase ) )
+                    files.Add( file );
+            }
+
+            if( files.Count == 0 )
+            {
+                assembly = null;
+                return true;
+            }
+
+            Console.WriteLine( "Scripts: Workbench mode enabled ({0} files):", files.Count );
+
+            foreach( string file in files )
+                Console.WriteLine( " - {0}", file );
+
+            return CompileCSharpScripts( "Workbench C#", "Scripts.WB", files.ToArray(), debug, cache, out assembly );
+        }
+
+        private static bool CompileCSharpScripts( string language, string name, string[] files, bool debug, bool cache, out Assembly assembly )
+        {
+            Console.Write( "Scripts: Compiling {0} scripts...", language );
 
             if( files.Length == 0 )
             {
@@ -182,15 +220,18 @@ namespace Server
                 return true;
             }
 
-            if( File.Exists( "Scripts/Output/Scripts.CS.dll" ) )
+            string compiledFile = Path.Combine( Core.BaseDirectory, "Scripts/Output/" + name + ".dll" );
+            string hashFile = Path.Combine( Core.BaseDirectory, "Scripts/Output/" + name + ".hash" );
+
+            if( File.Exists( compiledFile ) )
             {
-                if( cache && File.Exists( "Scripts/Output/Scripts.CS.hash" ) )
+                if( cache && File.Exists( hashFile ) )
                 {
                     try
                     {
-                        byte[] hashCode = GetHashCode( "Scripts/Output/Scripts.CS.dll", files, debug );
+                        byte[] hashCode = GetHashCode( compiledFile, files, debug );
 
-                        using( FileStream fs = new FileStream( "Scripts/Output/Scripts.CS.hash", FileMode.Open, FileAccess.Read, FileShare.Read ) )
+                        using( FileStream fs = new FileStream( hashFile, FileMode.Open, FileAccess.Read, FileShare.Read ) )
                         {
                             using( BinaryReader bin = new BinaryReader( fs ) )
                             {
@@ -211,7 +252,7 @@ namespace Server
 
                                     if( valid )
                                     {
-                                        assembly = Assembly.LoadFrom( "Scripts/Output/Scripts.CS.dll" );
+                                        assembly = Assembly.LoadFrom( compiledFile );
 
                                         if( !m_AdditionalReferences.Contains( assembly.Location ) )
                                         {
@@ -232,11 +273,11 @@ namespace Server
                 }
             }
 
-            DeleteFiles( "Scripts.CS*.dll" );
+            DeleteFiles( name + "*.dll" );
 
             using ( CSharpCodeProvider provider = new CSharpCodeProvider() )
             {
-                string path = GetUnusedPath( "Scripts.CS" );
+                string path = GetUnusedPath( name );
 
                 CompilerParameters parms = new CompilerParameters( GetReferenceAssemblies(), path, debug );
 
@@ -249,7 +290,10 @@ namespace Server
                     parms.WarningLevel = 4;
 
 #if MONO
-                parms.CompilerOptions = String.Format( "{0} /nowarn:169,219,414 /recurse:Scripts/*.cs", parms.CompilerOptions );
+                parms.CompilerOptions = String.Format( "{0} /nowarn:169,219,414", parms.CompilerOptions );
+
+                if( name == "Scripts.CS" )
+                    parms.CompilerOptions += " /recurse:Scripts/*.cs";
 #endif
                 CompilerResults results = provider.CompileAssemblyFromFile( parms, files );
 
@@ -273,13 +317,13 @@ namespace Server
 #endif
 
 
-                if( cache && Path.GetFileName( path ) == "Scripts.CS.dll" )
+                if( cache && Path.GetFileName( path ) == name + ".dll" )
                 {
                     try
                     {
                         byte[] hashCode = GetHashCode( path, files, debug );
 
-                        using( FileStream fs = new FileStream( "Scripts/Output/Scripts.CS.hash", FileMode.Create, FileAccess.Write, FileShare.None ) )
+                        using( FileStream fs = new FileStream( hashFile, FileMode.Create, FileAccess.Write, FileShare.None ) )
                         {
                             using( BinaryWriter bin = new BinaryWriter( fs ) )
                             {
@@ -603,6 +647,16 @@ namespace Server
             else
             {
                 Console.WriteLine( "Scripts: Skipping VB.NET Scripts...done (use -vb to enable)");
+            }
+
+            if( CompileWBScripts( debug, cache, out assembly ) )
+            {
+                if( assembly != null )
+                    assemblies.Add( assembly );
+            }
+            else
+            {
+                return false;
             }
 
             if( assemblies.Count == 0 )
