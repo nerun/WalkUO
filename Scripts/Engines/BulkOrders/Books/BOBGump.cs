@@ -441,6 +441,9 @@ namespace Server.Engines.BulkOrders
 
             public override void OnResponse( Mobile from, string text )
             {
+                if ( m_Book.Deleted || !m_Book.IsChildOf( from.Backpack ) )
+                    return;
+
                 if ( m_Object != null && !m_Book.Entries.Contains( m_Object ) )
                 {
                     from.SendLocalizedMessage( 1062382 ); // The deed selected is not available.
