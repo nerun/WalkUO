@@ -74,7 +74,7 @@ namespace Server.Accounting
                     {
                         if (!AccountGold.Enabled)
                         {
-                            share = (int)Math.Truncate((a.TotalCurrency / a.Count) * CurrencyThreshold);
+                            share = (long)Math.Truncate((a.TotalCurrency / a.Count) * CurrencyThreshold);
                             found += a.TotalCurrency * CurrencyThreshold;
                         }
 
