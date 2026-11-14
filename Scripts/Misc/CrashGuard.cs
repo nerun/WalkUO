@@ -66,7 +66,13 @@ namespace Server.Misc
 
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(Email.FromAddress, Email.FromAddress));
-            message.To.Add(new MailboxAddress(Email.CrashAddresses, Email.CrashAddresses));
+            foreach (string addr in Email.CrashAddresses.Split(new char[] { ',', ';' }))
+            {
+                string trimmed = addr.Trim();
+
+                if (trimmed.Length > 0)
+                    message.To.Add(new MailboxAddress(trimmed, trimmed));
+            }
             message.Subject = "Automated WalkUO Crash Report";
 
             // Corpo simples
