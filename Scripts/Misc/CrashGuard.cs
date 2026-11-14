@@ -188,7 +188,7 @@ namespace Server.Misc
                 CreateDirectory(rootBackup, "Regions/");
 
                 // Copy files
-                CopyFile(rootOrigin, rootBackup, "Accounts/Accounts.xml");
+                CopyFile(rootOrigin, rootBackup, "Accounts/accounts.xml");
 
                 CopyFile(rootOrigin, rootBackup, "Items/Items.bin");
                 CopyFile(rootOrigin, rootBackup, "Items/Items.idx");
