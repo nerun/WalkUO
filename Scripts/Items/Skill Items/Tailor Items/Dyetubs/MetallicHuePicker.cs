@@ -85,7 +85,11 @@ namespace Server.Items
                 {
                     if( info.Switches.Length > 0 )
                     {
-                        m_Callback( m_From, m_State, info.Switches[ 0 ] );
+                        int hue = info.Switches[ 0 ];
+
+                        // Only the hues offered by Render() are valid
+                        if( ( hue >= 2501 && hue <= 2644 ) || ( hue >= 2651 && hue <= 2662 ) )
+                            m_Callback( m_From, m_State, hue );
                     }
                     break;
                 }
