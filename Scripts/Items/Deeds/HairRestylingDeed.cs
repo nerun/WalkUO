@@ -108,6 +108,12 @@ namespace Server.Items
                 if ( m_Deed.Deleted )
                     return;
 
+                if ( !m_Deed.IsChildOf( m_From.Backpack ) )
+                {
+                    m_From.SendLocalizedMessage( 1042001 ); // That must be in your pack...
+                    return;
+                }
+
                 if ( info.ButtonID < 1 || info.ButtonID > 10 )
                     return;
 
