@@ -383,7 +383,7 @@ namespace Server.Engines.Mahjong
             int fromPosition = GetPlayerIndex( from );
             Mobile to = GetPlayer( toPosition );
 
-            if ( fromPosition < 0 || to == null || m_Scores[fromPosition] < amount )
+            if ( fromPosition < 0 || to == null || amount <= 0 || m_Scores[fromPosition] < amount )
                 return;
 
             m_Scores[fromPosition] -= amount;
