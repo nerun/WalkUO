@@ -1991,7 +1991,13 @@ namespace Server.Multis
 
         public override void OnResponse( NetState sender, RelayInfo info )
         {
-            if( info.ButtonID == 1 )
+            if( info.ButtonID != 1 )
+                return;
+
+            // The sender must still be customizing this foundation
+            DesignContext context = DesignContext.Find( sender.Mobile );
+
+            if( context != null && context.Foundation == m_Foundation )
                 m_Foundation.EndConfirmCommit( sender.Mobile );
         }
     }
