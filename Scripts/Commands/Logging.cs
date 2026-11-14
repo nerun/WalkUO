@@ -107,7 +107,7 @@ namespace Server.Commands
                 AppendPath( ref path, "Logs" );
                 AppendPath( ref path, "Commands" );
                 AppendPath( ref path, from.AccessLevel.ToString() );
-                path = Path.Combine( path, String.Format( "{0}.log", name ) );
+                path = Path.Combine( path, String.Format( "{0}.log", Safe( name ) ) );
 
                 using ( StreamWriter sw = new StreamWriter( path, true ) )
                     sw.WriteLine( "{0}: {1}: {2}", DateTime.UtcNow, from.NetState, text );
