@@ -40,6 +40,9 @@ namespace Server.RemoteAdmin
         {
             PacketHandlers.Register( 0xF1, 0, false, new OnPacketReceive( OnReceive ) );
 
+            if ( AccountAttackLimiter.Enabled )
+                PacketHandlers.RegisterThrottler( 0xF1, new ThrottlePacketCallback( AccountAttackLimiter.Throttle_Callback ) );
+
 #if !MONO
             Core.MultiConsoleOut.Add( new EventTextWriter( new EventTextWriter.OnConsoleChar( OnConsoleChar ), new EventTextWriter.OnConsoleLine( OnConsoleLine ), new EventTextWriter.OnConsoleStr( OnConsoleString ) ) );
 #endif
@@ -183,24 +186,28 @@ namespace Server.RemoteAdmin
             {
                 state.Send( new Login( LoginResponse.NoUser ) );
                 Console.WriteLine( "ADMIN: Invalid username '{0}' from {1}", user, state );
+                AccountAttackLimiter.RegisterInvalidAccess( state );
                 DelayedDisconnect( state );
             }
             else if ( !a.HasAccess( state ) )
             {
                 state.Send( new Login( LoginResponse.BadIP ) );
                 Console.WriteLine( "ADMIN: Access to '{0}' from {1} denied.", user, state );
+                AccountAttackLimiter.RegisterInvalidAccess( state );
                 DelayedDisconnect( state );
             }
             else if ( !a.CheckPassword( pw ) )
             {
                 state.Send( new Login( LoginResponse.BadPass ) );
                 Console.WriteLine( "ADMIN: Invalid password for user '{0}' from {1}", user, state );
+                AccountAttackLimiter.RegisterInvalidAccess( state );
                 DelayedDisconnect( state );
             }
             else if ( a.AccessLevel < AccessLevel.Administrator || a.Banned )
             {
                 Console.WriteLine( "ADMIN: Account '{0}' does not have admin access. Connection Denied.", user );
                 state.Send( new Login( LoginResponse.NoAccess ) ); 
+                AccountAttackLimiter.RegisterInvalidAccess( state );
                 DelayedDisconnect( state );
             }
             else
