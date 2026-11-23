@@ -186,6 +186,12 @@ namespace Server.Items
                 if ( m_Ticket.Deleted )
                     return;
 
+                if ( !m_Ticket.IsChildOf( m_From.Backpack ) )
+                {
+                    m_From.SendLocalizedMessage( 1042001 ); // That must be in your pack for you to use it.
+                    return;
+                }
+
                 int number = 0;
 
                 Item item = null;

@@ -187,6 +187,12 @@ namespace Server.Items
                     return;        
                 
                 Mobile m = sender.Mobile;    
+
+                if ( !m_Cactus.IsChildOf( m.Backpack ) )
+                {
+                    m.SendLocalizedMessage( 1042001 ); // That must be in your pack for you to use it.
+                    return;
+                }
             
                 if ( info.ButtonID >= 0x1E0F && info.ButtonID <= 0x1E14 )
                 {

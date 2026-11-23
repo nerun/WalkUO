@@ -96,7 +96,7 @@ namespace Server.Items
         public bool East
         {
             get{ return m_East; }
-            set{ m_IsRewardItem = value; InvalidateProperties(); }
+            set{ m_East = value; InvalidateProperties(); }
         }
         
         [Constructable]

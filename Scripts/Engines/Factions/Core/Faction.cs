@@ -156,6 +156,15 @@ namespace Server.Factions
 
             public override void OnResponse( Mobile from, string text )
             {
+                if ( Faction.Find( from ) != m_Faction || !m_Faction.IsCommander( from ) )
+                    return;
+
+                if ( from.AccessLevel == AccessLevel.Player && !m_Faction.FactionMessageReady )
+                {
+                    from.SendLocalizedMessage( 1010264 ); // The required time has not yet passed since the last message was sent
+                    return;
+                }
+
                 m_Faction.EndBroadcast( from, text );
             }
         }

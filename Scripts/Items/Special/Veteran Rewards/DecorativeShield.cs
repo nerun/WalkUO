@@ -394,6 +394,11 @@ namespace Server.Items
                 public override void OnResponse( NetState sender, RelayInfo info )
                 {
                     if ( m_Shield == null || m_Shield.Deleted || m_House == null )
+                        return;
+
+                    Mobile from = sender.Mobile;
+
+                    if ( !m_Shield.IsChildOf( from.Backpack ) || m_House.Deleted || !m_House.IsOwner( from ) )
                         return;        
                     
                     DecorativeShield shield = null;    

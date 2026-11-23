@@ -244,6 +244,12 @@ namespace Server.Items
 
                 Mobile m = sender.Mobile;
 
+                if ( !m_Brazier.IsChildOf( m.Backpack ) )
+                {
+                    m.SendLocalizedMessage( 1042001 ); // That must be in your pack for you to use it.
+                    return;
+                }
+
                 if ( info.ButtonID == 0x19AA || info.ButtonID == 0x19BB )
                 {
                     RewardBrazier brazier = new RewardBrazier( info.ButtonID );

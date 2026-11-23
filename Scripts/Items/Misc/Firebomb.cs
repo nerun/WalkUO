@@ -271,6 +271,8 @@ namespace Server.Items
 
         public override void Deserialize( GenericReader reader )
         {
+            // Nothing was saved; a field restored from a save has no timer and would never expire.
+            Delete();
         }
 
         public override bool OnMoveOver( Mobile m )

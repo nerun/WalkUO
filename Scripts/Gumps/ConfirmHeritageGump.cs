@@ -58,6 +58,12 @@ namespace Server.Gumps
             if ( m_Token == null || m_Token.Deleted )
                 return;
 
+            if ( !m_Token.IsChildOf( sender.Mobile.Backpack ) )
+            {
+                sender.Mobile.SendLocalizedMessage( 1062334 ); // This item must be in your backpack to be used.
+                return;
+            }
+
             switch ( info.ButtonID )
             {
                 case (int) Buttons.Okay:

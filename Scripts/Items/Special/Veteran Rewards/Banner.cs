@@ -380,6 +380,11 @@ namespace Server.Items
                 public override void OnResponse( NetState sender, RelayInfo info )
                 {
                     if ( m_Banner == null || m_Banner.Deleted || m_House == null )
+                        return;
+
+                    Mobile from = sender.Mobile;
+
+                    if ( !m_Banner.IsChildOf( from.Backpack ) || m_House.Deleted || !m_House.IsOwner( from ) )
                         return;        
                     
                     Banner banner = null;    
