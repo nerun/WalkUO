@@ -5156,11 +5156,14 @@ namespace Server.Mobiles
 
                 if ( pet == null || pet.Deleted )
                 {
-                    pet.IsStabled = false;
-                    pet.StabledBy = null;
+                    if ( pet != null )
+                    {
+                        pet.IsStabled = false;
+                        pet.StabledBy = null;
+                    }
 
-                    if ( Stabled.Contains( pet ) )
-                        Stabled.Remove( pet );
+                    if ( Stabled.Contains( m_AutoStabled[i] ) )
+                        Stabled.Remove( m_AutoStabled[i] );
 
                     continue;
                 }
