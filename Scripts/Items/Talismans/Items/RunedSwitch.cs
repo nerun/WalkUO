@@ -76,6 +76,12 @@ namespace Server.Items
                 if ( m_Item == null || m_Item.Deleted )
                     return;
 
+                if ( !m_Item.IsChildOf( from.Backpack ) )
+                {
+                    from.SendLocalizedMessage( 1042001 ); // That must be in your pack for you to use it.
+                    return;
+                }
+
                 if ( o is BaseTalisman )
                 {
                     BaseTalisman talisman = (BaseTalisman) o;

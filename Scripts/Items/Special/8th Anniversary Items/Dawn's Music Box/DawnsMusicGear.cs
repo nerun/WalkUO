@@ -87,6 +87,12 @@ namespace Server.Items
 
         public override void OnDoubleClick( Mobile from )
         {
+            if ( !IsChildOf( from.Backpack ) )
+            {
+                from.SendLocalizedMessage( 1042001 ); // That must be in your pack for you to use it.
+                return;
+            }
+
             from.Target = new InternalTarget( this );
         }
 
@@ -143,6 +149,12 @@ namespace Server.Items
             {
                 if ( m_Gear == null || m_Gear.Deleted )
                     return;
+
+                if ( !m_Gear.IsChildOf( from.Backpack ) )
+                {
+                    from.SendLocalizedMessage( 1042001 ); // That must be in your pack for you to use it.
+                    return;
+                }
 
                 DawnsMusicBox box = targeted as DawnsMusicBox;
 
