@@ -69,7 +69,9 @@ namespace Server.Factions
         {
             Faction faction = Faction.Find( from );
 
-            if ( faction == null )
+            if ( !IsChildOf( from.Backpack ) )
+                from.SendLocalizedMessage( 1042001 ); // That must be in your pack for you to use it.
+            else if ( faction == null )
                 from.SendLocalizedMessage( 1010353, "", 0x23 ); // Only faction members may place faction traps
             else if ( faction != m_Faction )
                 from.SendLocalizedMessage( 1010354, "", 0x23 ); // You may only place faction traps created by your faction
