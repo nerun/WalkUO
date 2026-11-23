@@ -318,6 +318,12 @@ namespace Server.Items
 
             public override void OnResponse( Mobile from, string text )
             {
+                if ( m_Rune.Deleted || !m_Rune.IsChildOf( from.Backpack ) )
+                {
+                    from.SendLocalizedMessage( 1042001 ); // That must be in your pack for you to use it.
+                    return;
+                }
+
                 if ( m_Rune.House == null && m_Rune.Marked )
                 {
                     m_Rune.Description = text;

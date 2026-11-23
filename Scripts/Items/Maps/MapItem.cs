@@ -229,7 +229,7 @@ namespace Server.Items
         public void ConvertToMap( int x, int y, out int mapX, out int mapY )
         {
             mapX = ( ( x - m_Bounds.X ) * Width ) / m_Bounds.Width;
-            mapY = ( ( y - m_Bounds.Y ) * Width ) / m_Bounds.Height;
+            mapY = ( ( y - m_Bounds.Y ) * Height ) / m_Bounds.Height;
         }
 
         public virtual void AddWorldPin( int x, int y )

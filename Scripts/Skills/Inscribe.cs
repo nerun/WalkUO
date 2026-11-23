@@ -148,7 +148,7 @@ namespace Server.SkillHandlers
                     from.SendLocalizedMessage( 501611 ); // Can't copy an empty book.
                 else if ( bookDst == m_BookSrc )
                     from.SendLocalizedMessage( 501616 ); // Cannot copy a book onto itself.
-                else if ( !bookDst.Writable )
+                else if ( !bookDst.Writable || !bookDst.IsAccessibleTo( from ) )
                     from.SendLocalizedMessage( 501614 ); // Cannot write into that book.
                 else if ( Inscribe.GetUser( bookDst ) != null )
                     from.SendLocalizedMessage( 501621 ); // Someone else is inscribing that item.

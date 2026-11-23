@@ -416,6 +416,9 @@ namespace Server.Mobiles
 
         public void EndChangeRumor( Mobile from, int index, string text )
         {
+            if ( Deleted || !IsOwner( from ) )
+                return;
+
             if ( index < 0 || index >= m_Rumors.Length )
                 return;
 
@@ -430,6 +433,9 @@ namespace Server.Mobiles
 
         public void EndChangeKeyword( Mobile from, int index, string text )
         {
+            if ( Deleted || !IsOwner( from ) )
+                return;
+
             if ( index < 0 || index >= m_Rumors.Length )
                 return;
 
@@ -457,6 +463,9 @@ namespace Server.Mobiles
 
         public void EndChangeTip( Mobile from, string text )
         {
+            if ( Deleted || !IsOwner( from ) )
+                return;
+
             m_TipMessage = text;
             PrivateOverheadMessage( MessageType.Regular, 0x3B2, false, "I'll say that to anyone who gives me a good tip.", from.NetState );
         }

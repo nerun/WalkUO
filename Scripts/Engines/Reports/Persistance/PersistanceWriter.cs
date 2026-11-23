@@ -130,6 +130,10 @@ namespace Server.Engines.Reports
                 if ( File.Exists( m_RealFilePath ) )
                 {
                     renamed = Path.ChangeExtension( m_RealFilePath, ".rem" );
+
+                    if ( File.Exists( renamed ) )
+                        File.Delete( renamed );
+
                     File.Move( m_RealFilePath, renamed );
                     File.Move( m_TempFilePath, m_RealFilePath );
                     File.Delete( renamed );

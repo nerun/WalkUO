@@ -232,6 +232,11 @@ namespace Server.SkillHandlers
                 {
                     m_Thief.SendLocalizedMessage( 502710 ); // You can't steal that!
                 }
+                else if ( root is Item && !Server.Multis.BaseHouse.CheckAccessible( m_Thief, (Item)root ) )
+                {
+                    // Secure or locked down containers the thief has no access to
+                    m_Thief.SendLocalizedMessage( 502710 ); // You can't steal that!
+                }
                 else
                 {
                     double w = toSteal.Weight + toSteal.TotalWeight;

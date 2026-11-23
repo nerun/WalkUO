@@ -1781,6 +1781,10 @@ namespace Server.Multis
                 m_House.Bans.Clear();
                 m_House.Friends.Clear();
                 m_House.CoOwners.Clear();
+
+                if ( m_House.Access != null )
+                    m_House.Access.Clear();
+
                 m_House.ChangeLocks( to );
                 m_House.LastTraded = DateTime.UtcNow;
             }

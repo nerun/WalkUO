@@ -857,7 +857,15 @@ namespace Server.Mobiles
                 return;
             }
 
-            totalCost += bii.Price * amount;
+            long cost = (long)bii.Price * amount;
+
+            if ( cost < 0 || totalCost + cost > int.MaxValue )
+            {
+                fullPurchase = false;
+                return;
+            }
+
+            totalCost += (int)cost;
             validBuy.Add( buy );
         }
 
@@ -996,7 +1004,15 @@ namespace Server.Mobiles
                             {
                                 if ( ssi.IsResellable( item ) )
                                 {
-                                    totalCost += ssi.GetBuyPriceFor( item ) * amount;
+                                    long cost = (long)ssi.GetBuyPriceFor( item ) * amount;
+
+                                    if ( cost < 0 || totalCost + cost > int.MaxValue )
+                                    {
+                                        fullPurchase = false;
+                                        break;
+                                    }
+
+                                    totalCost += (int)cost;
                                     validBuy.Add( buy );
                                     break;
                                 }

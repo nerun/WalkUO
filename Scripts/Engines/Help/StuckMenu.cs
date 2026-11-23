@@ -299,11 +299,23 @@ namespace Server.Menus.Questions
                         destMap = Map.Trammel;
                     else if ( m_Mobile.Map == Map.Felucca )
                         destMap = Map.Felucca;
+                    else if ( m_Mobile.Map == Map.Internal )
+                        destMap = ( m_Mobile.LogoutMap == Map.Felucca ? Map.Felucca : Map.Trammel );
                     else
                         destMap = m_Mobile.Kills >= 5 ? Map.Felucca : Map.Trammel;
 
-                    Mobiles.BaseCreature.TeleportPets( m_Mobile, dest, destMap );
-                    m_Mobile.MoveToWorld( dest, destMap );
+                    if ( m_Mobile.Map == Map.Internal )
+                    {
+                        // Logged out while waiting: move the logout point instead of
+                        // placing the offline character in the world
+                        m_Mobile.LogoutLocation = dest;
+                        m_Mobile.LogoutMap = destMap;
+                    }
+                    else
+                    {
+                        Mobiles.BaseCreature.TeleportPets( m_Mobile, dest, destMap );
+                        m_Mobile.MoveToWorld( dest, destMap );
+                    }
                 }
             }
         }

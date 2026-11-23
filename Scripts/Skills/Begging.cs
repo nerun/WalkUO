@@ -183,7 +183,7 @@ namespace Server.SkillHandlers
                     }
                     else
                     {
-                        m_Target.SendLocalizedMessage( 500404 ); // They seem unwilling to give you any money.
+                        m_From.SendLocalizedMessage( 500404 ); // They seem unwilling to give you any money.
                     }
 
                     m_From.NextSkillTime = Core.TickCount + 10000;
