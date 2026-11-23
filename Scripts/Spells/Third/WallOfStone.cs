@@ -187,7 +187,7 @@ namespace Server.Spells.Third
             {
                 int noto;
 
-                if ( m is PlayerMobile )
+                if ( m is PlayerMobile && m_Caster != null )
                 {
                     noto = Notoriety.Compute( m_Caster, m );
                     if ( noto == Notoriety.Enemy || noto == Notoriety.Ally )
