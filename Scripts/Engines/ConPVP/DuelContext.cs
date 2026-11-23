@@ -641,7 +641,17 @@ namespace Server.Engines.ConPVP
                 return;
 
             mob.Combatant = null;
-            mob.MoveToWorld( m_Arena.Outside, m_Arena.Facet );
+
+            if ( mob.Map == Map.Internal )
+            {
+                // logged out; move the logout location instead of bringing them back into the world
+                mob.LogoutLocation = m_Arena.Outside;
+                mob.LogoutMap = m_Arena.Facet;
+            }
+            else
+            {
+                mob.MoveToWorld( m_Arena.Outside, m_Arena.Facet );
+            }
         }
 
         private Point3D m_GatePoint;
