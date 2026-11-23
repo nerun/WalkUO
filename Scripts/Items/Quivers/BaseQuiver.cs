@@ -458,6 +458,9 @@ namespace Server.Items
 
             if ( GetSaveFlag( flags, SaveFlag.Capacity ) )
                 m_Capacity = reader.ReadInt();
+
+            if ( Parent is Mobile )
+                m_Attributes.AddStatBonuses( (Mobile) Parent );
         }
 
         public virtual void AlterBowDamage( ref int phys, ref int fire, ref int cold, ref int pois, ref int nrgy, ref int chaos, ref int direct )
