@@ -56,6 +56,15 @@ namespace Server.Engines.Help
             {
                 m_From.SendLocalizedMessage( 501235, "", 0x35 ); // Help request aborted.
             }
+            else if ( PageQueue.Contains( m_From ) )
+            {
+                // A page was already queued from another help gump
+                m_From.SendMenu( new ContainedMenu( m_From ) );
+            }
+            else if ( !PageQueue.CheckAllowedToPage( m_From ) )
+            {
+                return;
+            }
             else
             {
                 TextRelay entry = info.GetTextEntry( 0 );
