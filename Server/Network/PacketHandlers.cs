@@ -2555,7 +2555,9 @@ namespace Server.Network
 
                 if ( Utility.RandomBool() )
                     authID |= 1<<31;
-            } while ( m_AuthIDWindow.ContainsKey( authID ) );
+            // A leading 0xEF byte would be taken by MessagePump.HandleSeed as the
+            // start of a 21-byte seed packet, breaking packet framing on relay.
+            } while ( m_AuthIDWindow.ContainsKey( authID ) || ((authID >> 24) & 0xFF) == 0xEF );
 
             m_AuthIDWindow[authID] = new AuthIDPersistence( state.Version );
             
