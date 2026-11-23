@@ -116,6 +116,8 @@ namespace Server.Items
 
         public override void Deserialize( GenericReader reader )
         {
+            // Nothing was saved; an item restored from a save has no timer and would never expire.
+            Delete();
         }
     }
 }
