@@ -170,6 +170,11 @@ namespace Server.Items
                 if ( m_Addon.Deleted )
                     return;
 
+                BaseHouse house = BaseHouse.FindHouseAt( m_Addon );
+
+                if ( house == null || !house.IsCoOwner( m_From ) )
+                    return;
+
                 if ( info.ButtonID == 1 )
                 {
                     if ( m_From.InRange( m_Addon.GetWorldLocation(), 3 ) )
