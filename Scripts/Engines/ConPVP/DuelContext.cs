@@ -2429,6 +2429,9 @@ namespace Server.Engines.ConPVP
                     if ( dp == null )
                         return "a slot is empty";
 
+                    if ( m_Tournament == null && dp.Mobile.Map == Map.Internal )
+                        return String.Format( "{0} is not online", dp.Mobile.Name );
+
                     if ( dp.Mobile.Region.IsPartOf( typeof( Regions.Jail ) ) )
                         return String.Format( "{0} is in jail", dp.Mobile.Name );
 
